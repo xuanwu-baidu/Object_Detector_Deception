@@ -1,0 +1,5 @@
+'''
+		reconstruct_img_BGR= cv2.cvtColor(reconstruct_img_resized_np,cv2.COLOR_RGB2BGR)
+		reconstruct_img_np=cv2.resize(reconstruct_img_resized_np,(self.h_img,self.w_img))#reconstruct_img_BGR
+		reconstruct_img_np_squeezed=np.squeeze(reconstruct_img_np)
+		'''

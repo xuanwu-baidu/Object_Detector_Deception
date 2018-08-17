@@ -1,0 +1,26 @@
+<annotation>
+	<folder>val2017</folder>
+	<filename>000000016598.jpg</filename>
+	<path>C:\Users\sadde\Documents\Launch Project\论文相关\数据集\val2017\000000016598.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>478</width>
+		<height>640</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>adversarial_zone</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>125</xmin>
+			<ymin>356</ymin>
+			<xmax>367</xmax>
+			<ymax>601</ymax>
+		</bndbox>
+	</object>
+</annotation>
