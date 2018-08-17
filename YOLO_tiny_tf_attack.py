@@ -143,9 +143,9 @@ class YOLO_TF:
 		# image in numpy format
 		self.inputs = inputs
 		# hyperparameter to control two optimization objectives
-		punishment = np.array([0.02])
+		punishment = np.array([-2])
 		# search step for a single attack
-		steps = 10
+		steps = 100
 		# set original image and punishment
 		in_dict = {self.x: inputs,
 		self.punishment:punishment,
@@ -155,8 +155,8 @@ class YOLO_TF:
 		print("YOLO attack...")
 		for i in range(steps):
 			# fetch something in self(tf.Variable)
-			net_output = self.sess.run([self.fc_19,self.attack,self.constrained,self.Cp],feed_dict=in_dict)#,self.img,self.x,self.tmp0
-			print("step:",i,"loss:",net_output[3])
+			net_output = self.sess.run([self.fc_19,self.attack,self.constrained,self.Cp,self.loss],feed_dict=in_dict)#,self.img,self.x,self.tmp0
+			print("step:",i,"Confidence:",net_output[3],"Loss:",net_output[4])
 		#pdb.set_trace()
 		#########
 		#print(net_output[1],net_output[2],net_output[3])#,net_output[2],net_output[3],net_output[4]
@@ -186,9 +186,9 @@ class YOLO_TF:
 		
 		savedname=time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
 		
-		pdb.set_trace()
+		#pdb.set_trace()
 		
-		cv2.imwrite(r"C:\\Users\\sadde\\Documents\\Launch Project\\YOLO_attack_tf\\result\\"+savedname,reconstruct_img_np_squeezed)
+		cv2.imwrite(r"C:\\Users\\sadde\\Documents\\Launch Project\\YOLO_attack_tiny\\result\\"+savedname,reconstruct_img_np_squeezed)
 		print("Saved: ",savedname)
 		print("Attack finished!")
 		self.show_results(img ,self.result)

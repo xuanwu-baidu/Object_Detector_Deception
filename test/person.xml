@@ -1,0 +1,38 @@
+<annotation>
+	<folder>test</folder>
+	<filename>person.jpg</filename>
+	<path>C:/Users/sadde/Documents/Launch Project/YOLO_attack_tiny/test/person.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>640</width>
+		<height>424</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>attack_zone</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>204</xmin>
+			<ymin>159</ymin>
+			<xmax>235</xmax>
+			<ymax>222</ymax>
+		</bndbox>
+	</object>
+	<object>
+		<name>attack_zone</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>507</xmin>
+			<ymin>19</ymin>
+			<xmax>508</xmax>
+			<ymax>20</ymax>
+		</bndbox>
+	</object>
+</annotation>
