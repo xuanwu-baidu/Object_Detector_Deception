@@ -39,7 +39,7 @@ class YOLO_TF:
 		for i in range(1,len(argvs),2):
 			# read picture file
 			if argvs[i] == '-fromfile' : self.fromfile = argvs[i+1]
-			# read mushfile
+			# read muskfile
 			if argvs[i] == '-frommuskfile' : self.frommuskfile = argvs[i+1]
 			if argvs[i] == '-tofile_img' : self.tofile_img = argvs[i+1] ; self.filewrite_img = True
 			if argvs[i] == '-tofile_txt' : self.tofile_txt = argvs[i+1] ; self.filewrite_txt = True
@@ -56,12 +56,6 @@ class YOLO_TF:
 		self.x = tf.placeholder('float32',[1,448,448,3])
 		self.musk=tf.placeholder('float32',[1,448,448,3])
 		####
-		'''
-		if self.fromfile is not None: self.readimage(self.fromfile)
-		self.const_init = tf.constant_initializer(self.inputs)
-		print("Hiiiiii! Yanshen!")
-		self.adversary=tf.get_variable("adversary",[1,448,448,3],initializer=self.const_init)
-		'''
 		self.punishment=tf.placeholder('float32',[1])
 		self.inter=tf.Variable(tf.random_normal([1,448,448,3], stddev=0.001),name='yan')
 		# box constraints ensure self.x within(0,1)
