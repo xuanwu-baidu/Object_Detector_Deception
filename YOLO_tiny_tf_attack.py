@@ -161,8 +161,10 @@ class YOLO_TF:
 		ad_x_01=(ad_x/2.0)+0.5
 		#print(ad_x_01)
 		###
+		'''
 		fig = plt.figure()
 		bx = fig.add_subplot(111)
+		'''
 		# bx.imshow only take value between 0 and 1
 		squeezed=np.squeeze(ad_x_01)
 		#print(squeezed.max())
@@ -394,7 +396,7 @@ class YOLO_TF:
 
 def main(argvs):
 	yolo = YOLO_TF(argvs)
-	cv2.waitKey(5000)
+	#cv2.waitKey(5000)
 
 
 if __name__=='__main__':	
