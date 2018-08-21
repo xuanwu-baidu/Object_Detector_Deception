@@ -14,7 +14,7 @@ class YOLO_TF:
 	fromfile = None
 	tofile_img = 'test/output.jpg'
 	tofile_txt = 'test/output.txt'
-	imshow = True
+	imshow = False
 	filewrite_img = False
 	filewrite_txt = False
 	disp_console = True
@@ -137,9 +137,9 @@ class YOLO_TF:
 		# image in numpy format
 		self.inputs = inputs
 		# hyperparameter to control two optimization objectives
-		punishment = np.array([-2])
+		punishment = np.array([-0.1])
 		# search step for a single attack
-		steps = 100
+		steps = 10
 		# set original image and punishment
 		in_dict = {self.x: inputs,
 		self.punishment:punishment,
@@ -166,10 +166,11 @@ class YOLO_TF:
 		# bx.imshow only take value between 0 and 1
 		squeezed=np.squeeze(ad_x_01)
 		#print(squeezed.max())
+		'''
 		print("Adversarial result:")
 		bx.imshow(squeezed)
 		plt.show()
-		
+		'''
 		ad_x_squeezed=np.squeeze(ad_x)
 		reconstruct_img_resized_np=(ad_x_squeezed+1.0)/2.0*255.0
 		print("min and max in img(numpy form):",reconstruct_img_resized_np.min(),reconstruct_img_resized_np.max())
@@ -181,9 +182,9 @@ class YOLO_TF:
 		savedname=time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
 		
 		#pdb.set_trace()
-		
-		cv2.imwrite(r"C:\\Users\\sadde\\Documents\\Launch Project\\YOLO_attack_tiny\\result\\"+savedname,reconstruct_img_np_squeezed)
-		print("Saved: ",savedname)
+		path = r"C:\\Users\\sadde\\Documents\\Launch Project\\YOLO_attack_tiny\\result\\"
+		cv2.imwrite(path+savedname,reconstruct_img_np_squeezed)
+		print("Saved under if there is: ",path+savedname)
 		print("Attack finished!")
 		self.show_results(img ,self.result)
 		
@@ -220,14 +221,14 @@ class YOLO_TF:
 			ymax = int(_object['bndbox']['ymax'])
 			print(xmin,ymin,xmax,ymax)
 			musk = self.generate_Musk(musk,xmin,ymin,xmax,ymax)
-
+		'''
 		fig = plt.figure()
 		ax = fig.add_subplot(211)
 		ax.imshow(musk)
 		bx = fig.add_subplot(212)
 		bx.imshow(np.asarray(pic))
 		plt.show()  
-		
+		'''
 		self.detect_from_cvmat(img,musk)
 
 	def conv_layer(self,idx,inputs,filters,size,stride):
