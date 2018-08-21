@@ -396,7 +396,7 @@ class YOLO_TF:
 
 def main(argvs):
 	yolo = YOLO_TF(argvs)
-	cv2.waitKey(5000)
+	#cv2.waitKey(5000)
 
 
 if __name__=='__main__':	
