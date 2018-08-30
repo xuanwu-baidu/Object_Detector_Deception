@@ -10,9 +10,6 @@ import xmltodict
 
 # transform it.
 
-
-
-
 def transform(V, Mt, Mr):
 	return np.dot(Mr, V + Mt)
 
@@ -68,9 +65,9 @@ def generate_photo():
 	# M = np.float32([[1, 0, 200], [0, 1, 100]]) 
 
 	# Affine Transformation
-	# transformation here
+	# Test cv2 affine ransformation here
 	pts1 = np.float32([[50,50],[200,50],[50,200]])
-	pts2 = np.float32([[10,100],[200,50],[100,250]])
+	pts2 = np.float32([[10,100],[200,50],[100,300]])
 	M = cv2.getAffineTransform(pts1,pts2)
  
 	dst = cv2.warpAffine(img, M, (width, height))   
