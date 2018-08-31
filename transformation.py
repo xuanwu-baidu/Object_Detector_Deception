@@ -10,7 +10,46 @@ import xmltodict
 
 # transform it.
 
-sample_6para = [[0,0,0,0,0,0], [5,0,0,0,0,0], [0, 5, 0, 0, 0, 0]]
+sample_6para = [[0,0,0,0,0,0], \
+# [5,0,0,0,0,0], \
+# [20, 0,0,0,0,0], \
+# [100, 0,0,0,0,0], \
+# [300, 0,0,0,0,0], \
+# [900, 0,0,0,0,0], \
+# [1500, 0,0,0,0,0], \
+# [2000, 0,0,0,0,0], \
+
+# [0, 300,0,0,0,0], \
+# [0, 600,0,0,0,0], \
+# [0, 900,0,0,0,0], \
+# [0, 0,300,0,0,0], \
+# [0, 0,600,0,0,0], \
+# [0, 0,900,0,0,0], \
+
+# sample success: when sticker move some step along X, picture go right,
+# when move some step along Y, picture go up
+# when move some step along Z, picture shrink
+
+[0, 0,900,math.pi/6,0,0], \
+[0, 0,900,math.pi/3,0,0], \
+[0, 0,900,math.pi/2,0,0], \
+[0, 0,900,math.pi*4/3,0,0], \
+
+[0, 0,900,0,-math.pi/12,0], \
+[0, 0,900,0,0,0], \
+[0, 0,900,0,math.pi/12,0], \
+[0, 0,900,0,math.pi/6,0], \
+
+[0, 0,0,0,0,-math.pi/12], \
+[0, 0,0,0,0,0], \
+[0, 0,0,0,0,math.pi/12], \
+[0, 0,0,0,0,math.pi/6], \
+
+# sample success: when sticker, still some problems for transformation. in euler transformation definition.
+
+[0, 5, 0, 0, 0, 0] ]
+
+
 
 def transform(V, Mt, Mr):
 	return np.dot(Mr, V + Mt)
@@ -132,7 +171,7 @@ def target_sample():
 
 		if(x_0f_1 < 0 or x_0f_1 > 3024 or y_0f_1 < 0 or y_0f_1 > 3024 or x_0f_2 < 0 or x_0f_2 > 3024 or \
 			y_0f_2 < 0 or y_0f_2 > 3024 or x_0f_3 < 0 or x_0f_3 > 3024 or y_0f_3 < 0 or y_0f_3 > 3024):
-			break
+			continue
 		pts2 = np.float32([[x_0f_1, y_0f_1],[x_0f_2, y_0f_2],[x_0f_3, y_0f_3]])
 		print("pts1 is: ", pts1, "\npts2 is:", pts2)
 		M = cv2.getAffineTransform(pts1,pts2)
@@ -158,21 +197,21 @@ def target_sample():
 	# Affine Transformation
 	# Test cv2 affine ransformation here
 
-	pts1 = np.float32([[50,50],[200,50],[50,200]])
-	pts2 = np.float32([[10,100],[200,50],[100,300]])
-	M = cv2.getAffineTransform(pts1,pts2)
+	# pts1 = np.float32([[50,50],[200,50],[50,200]])
+	# pts2 = np.float32([[10,100],[200,50],[100,300]])
+	# M = cv2.getAffineTransform(pts1,pts2)
  
-	dst = cv2.warpAffine(img, M, (width, height))   
+	# dst = cv2.warpAffine(img, M, (width, height))   
 
-	img_resized = cv2.resize(img, (448, 448))
-	dst_resized = cv2.resize(dst, (448, 448))
+	# img_resized = cv2.resize(img, (448, 448))
+	# dst_resized = cv2.resize(dst, (448, 448))
 
-	cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
-	cv2.imshow('camera', img_resized)
-	cv2.waitKey()
+	# cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
+	# cv2.imshow('camera', img_resized)
+	# cv2.waitKey()
 
-	cv2.imshow('camera', dst_resized)
-	cv2.waitKey()
+	# cv2.imshow('camera', dst_resized)
+	# cv2.waitKey()
 
 
 
@@ -252,39 +291,46 @@ def random_sample():
 							V1_ = transform6para(V1, x, y, z, a, b, g)
 							V2_ = transform6para(V2, x, y, z, a, b, g)
 							V3_ = transform6para(V3, x, y, z, a, b, g)
-
+						
 							x_f_1 = x_f0 * V1_[0] / V1_[2] * (-2000) / 92.3
-							y_f_1 = y_f0 * V1_[1] / V1_[2] * (-2000) / 92.3
+							y_f_1 = y_f0 * V1_[1] / V1_[2] * (2000) / 135.8
 							x_0f_1 = 1512 + x_f_1
 							y_0f_1 = 1512 + y_f_1
-
+							print("x_f0 is: ", x_f0, "\nx_f_1 is: ", x_f_1)
+							print("y_f0 is: ", y_f0, "\ny_f_1 is: ", y_f_1)
+					
 							x_f_2 = x_f0 * V2_[0] / V2_[2] * (-2000) / 92.3
-							y_f_2 = y_f0 * V2_[1] / V2_[2] * (-2000) / 92.3
+							y_f_2 = y_f0 * V2_[1] / V2_[2] * (2000) / 135.8
 							x_0f_2 = 1512 + x_f_2
 							y_0f_2 = 1512 + y_f_2
-
+							print("x_f0 is: ", x_f0, "\nx_f_2 is: ", x_f_2)
+							print("y_f0 is: ", y_f0, "\ny_f_2 is: ", y_f_2)
+					
 							x_f_3 = x_f0 * V3_[0] / V3_[2] * (-2000) / 92.3
-							y_f_3 = y_f0 * V3_[1] / V3_[2] * (-2000) / 92.3
+							y_f_3 = y_f0 * V3_[1] / V3_[2] * (2000) / 135.8
 							x_0f_3 = 1512 + x_f_3
 							y_0f_3 = 1512 + y_f_3
-
+							print("x_f0 is: ", x_f0, "\nx_f_3 is: ", x_f_3)
+							print("y_f0 is: ", y_f0, "\ny_f_3 is: ", y_f_3)
+					
 							if(x_0f_1 < 0 or x_0f_1 > 3024 or y_0f_1 < 0 or y_0f_1 > 3024 or x_0f_2 < 0 or x_0f_2 > 3024 or \
 								y_0f_2 < 0 or y_0f_2 > 3024 or x_0f_3 < 0 or x_0f_3 > 3024 or y_0f_3 < 0 or y_0f_3 > 3024):
-								break
+								continue
 							pts2 = np.float32([[x_0f_1, y_0f_1],[x_0f_2, y_0f_2],[x_0f_3, y_0f_3]])
+							print("pts1 is: ", pts1, "\npts2 is:", pts2)
 							M = cv2.getAffineTransform(pts1,pts2)
-
+						
 							dst = cv2.warpAffine(img, M, (width, height))
 							img_resized = cv2.resize(img, (448, 448))
 							dst_resized = cv2.resize(dst, (448, 448))
-						
+													
 							cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
 							# cv2.imshow('camera', img_resized)
 							# cv2.waitKey()
-						
+													
 							cv2.imshow('camera', dst_resized)
 							cv2.waitKey()
-						
+							
 							# print(pts2)
 							# print(x, y, z, a, b, g)
 
