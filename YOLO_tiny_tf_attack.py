@@ -108,8 +108,8 @@ class YOLO_TF:
 		self.distance_L2=tf.norm(self.perturbation, ord=2)
 		self.punishment=tf.placeholder('float32',[1])
 		# non-smoothness
-		self.lala1=self.constrained[0:-1,0:-1]
-		self.lala2=self.constrained[1:,1:]
+		self.lala1=self.musked_inter[0:-1,0:-1]
+		self.lala2=self.musked_inter[1:,1:]
 		self.sub_lala1_2=self.lala1-self.lala2
 		self.non_smoothness=tf.norm(self.sub_lala1_2, ord=2)
 		# loss is maxpooled confidence + distance_L2 + print smoothness
