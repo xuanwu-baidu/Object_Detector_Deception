@@ -57,6 +57,7 @@ class YOLO_TF:
 		self.musk=tf.placeholder('float32',[1,448,448,3])
 		####
 		self.punishment=tf.placeholder('float32',[1])
+		self.smoothness_punishment=tf.placeholder('float32',[1])
 		self.inter=tf.Variable(tf.random_normal([1,448,448,3], stddev=0.001),name='yan')
 		# box constraints ensure self.x within(0,1)
 		self.w=tf.atanh(self.x)
@@ -96,7 +97,6 @@ class YOLO_TF:
 		self.p=tf.stack([self.p1,self.p2],axis=0)
 		#for i in range(2):
 			#self.probs[:,:,i].assign(tf.multiply(self.c[:,:,14],self.s[:,:,i]))
-			
 		#self.probs=tf.concat([self.p1,self.p2],0)
 		#self.yan=tf.reduce_sum(tf.maximum(self.probs,0.2))
 		#self.yan=tf.reduce_sum(self.probs)
@@ -107,12 +107,16 @@ class YOLO_TF:
 		self.perturbation=self.x-self.constrained
 		self.distance_L2=tf.norm(self.perturbation, ord=2)
 		self.punishment=tf.placeholder('float32',[1])
-		self.loss=self.Cp+self.punishment*self.distance_L2
-		
+		# non-smoothness
+		self.lala1=self.constrained[0:-1,0:-1]
+		self.lala2=self.constrained[1:,1:]
+		self.sub_lala1_2=self.lala1-self.lala2
+		self.non_smoothness=tf.norm(self.sub_lala1_2, ord=2)
+		# loss is maxpooled confidence + distance_L2 + print smoothness
+		self.loss=self.Cp+self.punishment*self.distance_L2+self.smoothness_punishment*self.non_smoothness
 		# set optimizer
 		self.optimizer=tf.train.AdamOptimizer(1e-2)#GradientDescentOptimizerAdamOptimizer
 		self.attack=self.optimizer.minimize(self.loss,var_list=[self.inter])#,var_list=[self.adversary]
-		
 		####################
 		self.sess = tf.Session()
 		self.sess.run(tf.global_variables_initializer())
@@ -137,13 +141,15 @@ class YOLO_TF:
 		# image in numpy format
 		self.inputs = inputs
 		# hyperparameter to control two optimization objectives
-		punishment = np.array([-0.1])
+		punishment = np.array([0.0])
+		smoothness_punishment = np.array([0.5])
 		# search step for a single attack
-		steps = 10
+		steps = 100
 		# set original image and punishment
 		in_dict = {self.x: inputs,
 		self.punishment:punishment,
-		self.musk:inputs_musk
+		self.musk:inputs_musk,
+		self.smoothness_punishment:smoothness_punishment
 		}#,self.img:inputs
 		# attack
 		print("YOLO attack...")
@@ -184,12 +190,15 @@ class YOLO_TF:
 		savedname=time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
 		
 		#pdb.set_trace()
-		path = r"C:\\Users\\sadde\\Documents\\Launch Project\\YOLO_attack_tiny\\result\\"
-		cv2.imwrite(path+savedname,reconstruct_img_np_squeezed)
-		print("Saved under if there is: ",path+savedname)
+		path = r"C:\Users\sadde\Documents\Launch Project\YOLO_attack-1\result\\"
+		is_saved=cv2.imwrite(path+savedname,reconstruct_img_np_squeezed)
+		if is_saved:
+			print("Saved under: ",path+savedname)
+		else:
+			print("Saving error!")
+
 		print("Attack finished!")
 		self.show_results(img ,self.result)
-		
 		strtime = str(time.time()-s)
 		if self.disp_console : print('Elapsed time : ' + strtime + ' secs' + '\n')
 
