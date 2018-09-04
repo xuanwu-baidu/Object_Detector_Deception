@@ -40,12 +40,14 @@ sample_6para = [[0,0,0,0,0,0], \
 [0, 0,900,0,math.pi/12,0], \
 [0, 0,900,0,math.pi/6,0], \
 
-[0, 0,0,0,0,-math.pi/12], \
-[0, 0,0,0,0,0], \
-[0, 0,0,0,0,math.pi/12], \
-[0, 0,0,0,0,math.pi/6], \
+[0, 0,900,0,0,-math.pi/12], \
+[0, 0,900,0,0,0], \
+[0, 0,900,0,0,math.pi/12], \
+[0, 0,900,0,0,math.pi/6], \
 
-# sample success: when sticker, still some problems for transformation. in euler transformation definition.
+# sample success: when sticker rotate positively alpha around z-axis, the sticker on the image turns around z-axis unclockwise.
+# when sticker rotate positively beta aound y-axis, the sticker on the image turns around y-axis negatively(mirror)
+# when sticker rotate positively gamma around x-axis, the sticker on the image turns around x-axis negatively(mirror)
 
 [0, 5, 0, 0, 0, 0] ]
 
