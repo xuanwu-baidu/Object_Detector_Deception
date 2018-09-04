@@ -35,20 +35,31 @@ sample_6para = [[0,0,0,0,0,0], \
 [0, 0,900,math.pi/2,0,0], \
 [0, 0,900,math.pi*4/3,0,0], \
 
+[0, 0,900,0,-math.pi/6,0], \
 [0, 0,900,0,-math.pi/12,0], \
 [0, 0,900,0,0,0], \
 [0, 0,900,0,math.pi/12,0], \
 [0, 0,900,0,math.pi/6,0], \
+[0, 0,900,0,math.pi/4,0], \
+[0, 0,900,0,math.pi/3,0], \
+[0, 0,900,0,math.pi/12*5,0], \
+[0, 0,900,0,math.pi/2,0], \
 
+[0, 0,900,0,0,-math.pi/6], \
 [0, 0,900,0,0,-math.pi/12], \
 [0, 0,900,0,0,0], \
 [0, 0,900,0,0,math.pi/12], \
 [0, 0,900,0,0,math.pi/6], \
+[0, 0,900,0,0,math.pi/4], \
+[0, 0,900,0,0,math.pi/3], \
+[0, 0,900,0,0,math.pi/12*5], \
+[0, 0,900,0,0,math.pi/2], \
 
 # sample success: when sticker rotate positively alpha around z-axis, the sticker on the image turns around z-axis unclockwise.
 # when sticker rotate positively beta aound y-axis, the sticker on the image turns around y-axis negatively(mirror)
 # when sticker rotate positively gamma around x-axis, the sticker on the image turns around x-axis negatively(mirror)
 
+# analysis: actually for the rotation of a plane, it doesn't matter it is rotated clockwisely or unclockwisely.
 [0, 5, 0, 0, 0, 0] ]
 
 
@@ -146,36 +157,55 @@ def target_sample():
 		x, y, z, a, b, g = item[0], item[1], item[2], item[3], item[4], item[5]
 
 		print(x, y, z, a, b, g)
-		V1_ = transform6para(V1, x, y, z, a, b, g)
-		V2_ = transform6para(V2, x, y, z, a, b, g)
-		V3_ = transform6para(V3, x, y, z, a, b, g)
-	
+
+		# print ("V1, V2, V3 is:", V1, V2, V3)
+
+		'''rotate in self coordinate system'''
+		V1_self = np.array([V1[0], V1[1], 0])
+		V2_self = np.array([V2[0], V2[1], 0])
+		V3_self = np.array([V3[0], V3[1], 0])
+		# print ("V1, V2, V3 self is:", V1_self, V2_self, V3_self)
+
+		V1_self_ = transform6para(V1_self, 0, 0, 0, a, b, g)
+		V2_self_ = transform6para(V2_self, 0, 0, 0, a, b, g)
+		V3_self_ = transform6para(V3_self, 0, 0, 0, a, b, g)
+		# print ("V1, V2, V3 self_ is:", V1_self_, V2_self_, V3_self_)
+		
+		V1_ = np.array([V1_self_[0], V1_self_[1], V1_self_[2] + V1[2]])
+		V2_ = np.array([V2_self_[0], V2_self_[1], V2_self_[2] + V2[2]])
+		V3_ = np.array([V3_self_[0], V3_self_[1], V3_self_[2] + V3[2]])
+
+		'''transform in camera xyz coordinate system. '''
+		V1_ = transform6para(V1_, x, y, z, 0, 0, 0)
+		V2_ = transform6para(V2_, x, y, z, 0, 0, 0)
+		V3_ = transform6para(V3_, x, y, z, 0, 0, 0)
+
 		x_f_1 = x_f0 * V1_[0] / V1_[2] * (-2000) / 92.3
 		y_f_1 = y_f0 * V1_[1] / V1_[2] * (2000) / 135.8
 		x_0f_1 = 1512 + x_f_1
 		y_0f_1 = 1512 + y_f_1
-		print("x_f0 is: ", x_f0, "\nx_f_1 is: ", x_f_1)
-		print("y_f0 is: ", y_f0, "\ny_f_1 is: ", y_f_1)
+		# print("x_f0 is: ", x_f0, "\nx_f_1 is: ", x_f_1)
+		# print("y_f0 is: ", y_f0, "\ny_f_1 is: ", y_f_1)
 
 		x_f_2 = x_f0 * V2_[0] / V2_[2] * (-2000) / 92.3
 		y_f_2 = y_f0 * V2_[1] / V2_[2] * (2000) / 135.8
 		x_0f_2 = 1512 + x_f_2
 		y_0f_2 = 1512 + y_f_2
-		print("x_f0 is: ", x_f0, "\nx_f_2 is: ", x_f_2)
-		print("y_f0 is: ", y_f0, "\ny_f_2 is: ", y_f_2)
+		# print("x_f0 is: ", x_f0, "\nx_f_2 is: ", x_f_2)
+		# print("y_f0 is: ", y_f0, "\ny_f_2 is: ", y_f_2)
 
 		x_f_3 = x_f0 * V3_[0] / V3_[2] * (-2000) / 92.3
 		y_f_3 = y_f0 * V3_[1] / V3_[2] * (2000) / 135.8
 		x_0f_3 = 1512 + x_f_3
 		y_0f_3 = 1512 + y_f_3
-		print("x_f0 is: ", x_f0, "\nx_f_3 is: ", x_f_3)
-		print("y_f0 is: ", y_f0, "\ny_f_3 is: ", y_f_3)
+		# print("x_f0 is: ", x_f0, "\nx_f_3 is: ", x_f_3)
+		# print("y_f0 is: ", y_f0, "\ny_f_3 is: ", y_f_3)
 
-		if(x_0f_1 < 0 or x_0f_1 > 3024 or y_0f_1 < 0 or y_0f_1 > 3024 or x_0f_2 < 0 or x_0f_2 > 3024 or \
-			y_0f_2 < 0 or y_0f_2 > 3024 or x_0f_3 < 0 or x_0f_3 > 3024 or y_0f_3 < 0 or y_0f_3 > 3024):
-			continue
+		# if(x_0f_1 < 0 or x_0f_1 > 3024 or y_0f_1 < 0 or y_0f_1 > 3024 or x_0f_2 < 0 or x_0f_2 > 3024 or \
+			# y_0f_2 < 0 or y_0f_2 > 3024 or x_0f_3 < 0 or x_0f_3 > 3024 or y_0f_3 < 0 or y_0f_3 > 3024):
+			# continue
 		pts2 = np.float32([[x_0f_1, y_0f_1],[x_0f_2, y_0f_2],[x_0f_3, y_0f_3]])
-		print("pts1 is: ", pts1, "\npts2 is:", pts2)
+		# print("pts1 is: ", pts1, "\npts2 is:", pts2)
 		M = cv2.getAffineTransform(pts1,pts2)
 	
 		dst = cv2.warpAffine(img, M, (width, height))
