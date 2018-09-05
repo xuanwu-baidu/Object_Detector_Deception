@@ -54,18 +54,20 @@ class YOLO_TF:
 		if self.disp_console : print("Building YOLO_tiny graph...")
 		# x is the image
 		self.x = tf.placeholder('float32',[1,448,448,3])
-		self.musk=tf.placeholder('float32',[1,448,448,3])
+		self.musk = tf.placeholder('float32',[1,448,448,3])
 		####
-		self.punishment=tf.placeholder('float32',[1])
+		self.punishment = tf.placeholder('float32',[1])
 		self.smoothness_punishment=tf.placeholder('float32',[1])
-		self.inter=tf.Variable(tf.random_normal([1,448,448,3], stddev=0.001),name='yan')
+		self.inter = tf.Variable(tf.random_normal([1,448,448,3], stddev=0.001),name='yan')
 		# box constraints ensure self.x within(0,1)
-		self.w=tf.atanh(self.x)
+		self.w = tf.atanh(self.x)
 		# add musk
-		self.musked_inter=tf.multiply(self.musk,self.inter)
-		self.shuru=tf.add(self.w,self.musked_inter)
-		self.constrained=tf.tanh(self.shuru)
+		self.musked_inter = tf.multiply(self.musk,self.inter)
+		self.shuru = tf.add(self.w,self.musked_inter)
+		self.constrained = tf.tanh(self.shuru)
 		####
+		self.build_YOLO_model(self.constrained) 
+		'''
 		self.conv_1 = self.conv_layer(1,self.constrained,16,3,1)
 		self.pool_2 = self.pooling_layer(2,self.conv_1,2,2)
 		self.conv_3 = self.conv_layer(3,self.pool_2,32,3,1)
@@ -86,37 +88,38 @@ class YOLO_TF:
 		#skip dropout_18
 		self.fc_19 = self.fc_layer(19,self.fc_17,1470,flat=False,linear=True)
 		#pdb.set_trace()
-		self.c=tf.reshape(tf.slice(self.fc_19,[0,0],[1,980]),(7,7,20))
-		self.s=tf.reshape(tf.slice(self.fc_19,[0,980],[1,98]),(7,7,2))
+		'''
+		self.c = tf.reshape(tf.slice(self.fc_19,[0,0],[1,980]),(7,7,20))
+		self.s = tf.reshape(tf.slice(self.fc_19,[0,980],[1,98]),(7,7,2))
 		#self.probs = tf.Variable(tf.ones(shape=[]))
 		#self.probs = tf.placeholder('float32',[None,7,7,2])
 		#self.com=tf.constant(0.2*np.ones(98,dtype='float32'))
 		#pdb.set_trace()
-		self.p1=tf.multiply(self.c[:,:,14],self.s[:,:,0])
-		self.p2=tf.multiply(self.c[:,:,14],self.s[:,:,1])
-		self.p=tf.stack([self.p1,self.p2],axis=0)
+		self.p1 = tf.multiply(self.c[:,:,14],self.s[:,:,0])
+		self.p2 = tf.multiply(self.c[:,:,14],self.s[:,:,1])
+		self.p = tf.stack([self.p1,self.p2],axis=0)
 		#for i in range(2):
 			#self.probs[:,:,i].assign(tf.multiply(self.c[:,:,14],self.s[:,:,i]))
 		#self.probs=tf.concat([self.p1,self.p2],0)
 		#self.yan=tf.reduce_sum(tf.maximum(self.probs,0.2))
 		#self.yan=tf.reduce_sum(self.probs)
-		self.Cp=tf.reduce_max(self.p) # confidence for people
+		self.Cp = tf.reduce_max(self.p) # confidence for people
 		# computer graph for norm 2 distance
 		####################
 		# init an ad example
-		self.perturbation=self.x-self.constrained
-		self.distance_L2=tf.norm(self.perturbation, ord=2)
-		self.punishment=tf.placeholder('float32',[1])
+		self.perturbation = self.x-self.constrained
+		self.distance_L2 = tf.norm(self.perturbation, ord=2)
+		self.punishment = tf.placeholder('float32',[1])
 		# non-smoothness
-		self.lala1=self.constrained[0:-1,0:-1]
-		self.lala2=self.constrained[1:,1:]
-		self.sub_lala1_2=self.lala1-self.lala2
-		self.non_smoothness=tf.norm(self.sub_lala1_2, ord=2)
+		self.lala1 = self.musked_inter[0:-1,0:-1]
+		self.lala2 = self.musked_inter[1:,1:]
+		self.sub_lala1_2 = self.lala1-self.lala2
+		self.non_smoothness = tf.norm(self.sub_lala1_2, ord=2)
 		# loss is maxpooled confidence + distance_L2 + print smoothness
-		self.loss=self.Cp+self.punishment*self.distance_L2+self.smoothness_punishment*self.non_smoothness
+		self.loss = self.Cp+self.punishment*self.distance_L2+self.smoothness_punishment*self.non_smoothness
 		# set optimizer
-		self.optimizer=tf.train.AdamOptimizer(1e-2)#GradientDescentOptimizerAdamOptimizer
-		self.attack=self.optimizer.minimize(self.loss,var_list=[self.inter])#,var_list=[self.adversary]
+		self.optimizer = tf.train.AdamOptimizer(1e-2)#GradientDescentOptimizerAdamOptimizer
+		self.attack = self.optimizer.minimize(self.loss,var_list=[self.inter])#,var_list=[self.adversary]
 		####################
 		self.sess = tf.Session()
 		self.sess.run(tf.global_variables_initializer())
@@ -127,6 +130,27 @@ class YOLO_TF:
 		
 		if self.disp_console : print("Loading complete!" + '\n')
 		
+	def build_YOLO_model(self, image):
+		self.conv_1 = self.conv_layer(1,image,16,3,1)
+		self.pool_2 = self.pooling_layer(2,self.conv_1,2,2)
+		self.conv_3 = self.conv_layer(3,self.pool_2,32,3,1)
+		self.pool_4 = self.pooling_layer(4,self.conv_3,2,2)
+		self.conv_5 = self.conv_layer(5,self.pool_4,64,3,1)
+		self.pool_6 = self.pooling_layer(6,self.conv_5,2,2)
+		self.conv_7 = self.conv_layer(7,self.pool_6,128,3,1)
+		self.pool_8 = self.pooling_layer(8,self.conv_7,2,2)
+		self.conv_9 = self.conv_layer(9,self.pool_8,256,3,1)
+		self.pool_10 = self.pooling_layer(10,self.conv_9,2,2)
+		self.conv_11 = self.conv_layer(11,self.pool_10,512,3,1)
+		self.pool_12 = self.pooling_layer(12,self.conv_11,2,2)
+		self.conv_13 = self.conv_layer(13,self.pool_12,1024,3,1)
+		self.conv_14 = self.conv_layer(14,self.conv_13,1024,3,1)
+		self.conv_15 = self.conv_layer(15,self.conv_14,1024,3,1)
+		self.fc_16 = self.fc_layer(16,self.conv_15,256,flat=True,linear=False)
+		self.fc_17 = self.fc_layer(17,self.fc_16,4096,flat=False,linear=False)
+		#skip dropout_18
+		self.fc_19 = self.fc_layer(19,self.fc_17,1470,flat=False,linear=True)
+        
 	def detect_from_cvmat(self,img,musk):
 		s = time.time()
 		self.h_img,self.w_img,_ = img.shape
@@ -190,7 +214,7 @@ class YOLO_TF:
 		savedname=time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
 		
 		#pdb.set_trace()
-		path = r"C:\Users\sadde\Documents\Launch Project\YOLO_attack-1\result\\"
+		path = r"/home/baidu/Program/Jay/YOLO_attack-1/result/"
 		is_saved=cv2.imwrite(path+savedname,reconstruct_img_np_squeezed)
 		if is_saved:
 			print("Saved under: ",path+savedname)
