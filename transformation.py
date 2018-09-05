@@ -94,6 +94,8 @@ def test_transform():
 
 def target_sample():
 
+	sample_matrixes = []
+
 	img = cv2.imread("test/Darren.jpg")
 	calib = cv2.imread("calibration_file/calibration.jpg")
 	
@@ -207,7 +209,11 @@ def target_sample():
 		pts2 = np.float32([[x_0f_1, y_0f_1],[x_0f_2, y_0f_2],[x_0f_3, y_0f_3]])
 		# print("pts1 is: ", pts1, "\npts2 is:", pts2)
 		M = cv2.getAffineTransform(pts1,pts2)
-	
+		
+		print("M is: ", M)
+		# return 8 number parameter
+		sample_matrixes.append([M[0][0], M[0][1], M[0][2], M[1][0], M[1][1], M[1][2], 0, 0])
+
 		dst = cv2.warpAffine(img, M, (width, height))
 		img_resized = cv2.resize(img, (448, 448))
 		dst_resized = cv2.resize(dst, (448, 448))
@@ -222,7 +228,7 @@ def target_sample():
 		# print(pts2)
 		# print(x, y, z, a, b, g)
 
-
+	return sample_matrixes
 	# Shift
 	# M = np.float32([[1, 0, 200], [0, 1, 100]]) 
 
@@ -352,10 +358,12 @@ def random_sample():
 							print("pts1 is: ", pts1, "\npts2 is:", pts2)
 							M = cv2.getAffineTransform(pts1,pts2)
 						
+							
 							dst = cv2.warpAffine(img, M, (width, height))
 							img_resized = cv2.resize(img, (448, 448))
 							dst_resized = cv2.resize(dst, (448, 448))
-													
+							
+
 							cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
 							# cv2.imshow('camera', img_resized)
 							# cv2.waitKey()
@@ -365,7 +373,6 @@ def random_sample():
 							
 							# print(pts2)
 							# print(x, y, z, a, b, g)
-
 
 	# Shift
 	# M = np.float32([[1, 0, 200], [0, 1, 100]]) 
@@ -391,6 +398,6 @@ def random_sample():
 
 if __name__=='__main__':
 	#test_transform()
-	target_sample()
+	print(target_sample())
 	# random_sample()
 
