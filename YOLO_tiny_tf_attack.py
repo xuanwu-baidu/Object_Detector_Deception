@@ -8,6 +8,7 @@ import xmltodict
 import matplotlib.pyplot as plt
 from PIL import Image
 import time
+import transformation
 
 
 class YOLO_TF:
@@ -25,110 +26,135 @@ class YOLO_TF:
 	num_class = 20
 	num_box = 2
 	grid_size = 7
-	classes =  ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train","tvmonitor"]
+	classes = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow",
+	    "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 
 	w_img = 640
 	h_img = 480
 
-	def __init__(self,argvs = []):
+	def __init__(self, argvs=[]):
 		self.argv_parser(argvs)
-		self.build_networks()
+		self.build_yolo_attack()
 		self.training()
-		if self.fromfile is not None and  self.frommuskfile is not None: self.detect_from_file(self.fromfile,self.frommuskfile)#,self.muskfile  and  self.muskfile is not None
-	def argv_parser(self,argvs):
-		for i in range(1,len(argvs),2):
+		if self.fromfile is not None and self.frommuskfile is not None: self.detect_from_file(
+		    self.fromfile, self.frommuskfile)  # ,self.muskfile  and  self.muskfile is not None
+
+	def argv_parser(self, argvs):
+		for i in range(1, len(argvs), 2):
 			# read picture file
-			if argvs[i] == '-fromfile' : self.fromfile = argvs[i+1]
+			if argvs[i] == '-fromfile': self.fromfile = argvs[i + 1]
 			# read muskfile
-			if argvs[i] == '-frommuskfile' : self.frommuskfile = argvs[i+1]
-			if argvs[i] == '-tofile_img' : self.tofile_img = argvs[i+1] ; self.filewrite_img = True
-			if argvs[i] == '-tofile_txt' : self.tofile_txt = argvs[i+1] ; self.filewrite_txt = True
-			if argvs[i] == '-imshow' :
-				if argvs[i+1] == '1' :self.imshow = True
-				else : self.imshow = False
-			if argvs[i] == '-disp_console' :
-				if argvs[i+1] == '1' :self.disp_console = True
-				else : self.disp_console = False
-				
-	def build_networks(self):
-		if self.disp_console : print("Building YOLO_tiny graph...")
+			if argvs[i] == '-frommuskfile': self.frommuskfile = argvs[i + 1]
+			if argvs[i] == '-tofile_img': self.tofile_img = argvs[i +
+			    1]; self.filewrite_img = True
+			if argvs[i] == '-tofile_txt': self.tofile_txt = argvs[i +
+			    1]; self.filewrite_txt = True
+			if argvs[i] == '-imshow':
+				if argvs[i + 1] == '1': self.imshow = True
+				else: self.imshow = False
+			if argvs[i] == '-disp_console':
+				if argvs[i + 1] == '1': self.disp_console = True
+				else: self.disp_console = False
+
+	def build_yolo_attack(self):
+
+		self.sample_matrixes = transformation.target_sample()
+
+		if self.disp_console: print("Building YOLO_tiny graph...")
 		# x is the image
-		self.x = tf.placeholder('float32',[1,448,448,3])
-		self.musk = tf.placeholder('float32',[1,448,448,3])
+		self.x = tf.placeholder('float32', [1, 448, 448, 3])
+		self.musk = tf.placeholder('float32', [1, 448, 448, 3])
+
+		# self.trans_matrix_tf = tf.placeholder('float32', [37,8])
 		####
-		self.punishment = tf.placeholder('float32',[1])
-		self.smoothness_punishment=tf.placeholder('float32',[1])
-		self.inter = tf.Variable(tf.random_normal([1,448,448,3], stddev=0.001),name='yan')
+		self.punishment = tf.placeholder('float32', [1])
+		self.smoothness_punishment = tf.placeholder('float32', [1])
+		self.inter = tf.Variable(tf.random_normal(
+		    [1, 448, 448, 3], stddev=0.001), name='yan')
 		# box constraints ensure self.x within(0,1)
 		self.w = tf.atanh(self.x)
 		# add musk
-		self.musked_inter = tf.multiply(self.musk,self.inter)
-		self.shuru = tf.add(self.w,self.musked_inter)
+		self.musked_inter = tf.multiply(self.musk, self.inter)
+		self.shuru = tf.add(self.w, self.musked_inter)
 		self.constrained = tf.tanh(self.shuru)
-		####
-		self.build_YOLO_model(self.constrained)
-		self.c = tf.reshape(tf.slice(self.fc_19,[0,0],[1,980]),(7,7,20))
-		self.s = tf.reshape(tf.slice(self.fc_19,[0,980],[1,98]),(7,7,2))
-		#self.probs = tf.Variable(tf.ones(shape=[]))
-		#self.probs = tf.placeholder('float32',[None,7,7,2])
-		#self.com=tf.constant(0.2*np.ones(98,dtype='float32'))
-		#pdb.set_trace()
-		self.p1 = tf.multiply(self.c[:,:,14],self.s[:,:,0])
-		self.p2 = tf.multiply(self.c[:,:,14],self.s[:,:,1])
-		self.p = tf.stack([self.p1,self.p2],axis=0)
-		#for i in range(2):
-			#self.probs[:,:,i].assign(tf.multiply(self.c[:,:,14],self.s[:,:,i]))
-		#self.probs=tf.concat([self.p1,self.p2],0)
-		#self.yan=tf.reduce_sum(tf.maximum(self.probs,0.2))
-		#self.yan=tf.reduce_sum(self.probs)
-		self.Cp = tf.reduce_max(self.p) # confidence for people
-		# computer graph for norm 2 distance
+
+		# print("self.contrained: ", self.constrained)
+		self.n = tf.constant(37)
+		self.Cp_list = tf.TensorArray(tf.float32, self.n)
+
+		i = tf.while_loop(self.cond, self.body, (0))
+
+		self.Cp = tf.reduce_max(self.Cp_list)
+		pdb.steps_trace() 
+		print("Cp is:", self.Cp)
+		print("Cp_list is:", self.Cp_list)
 		####################
 		# init an ad example
-		self.perturbation = self.x-self.constrained
+		self.perturbation = self.x - self.constrained
 		self.distance_L2 = tf.norm(self.perturbation, ord=2)
-		self.punishment = tf.placeholder('float32',[1])
+		self.punishment = tf.placeholder('float32', [1])
 		# non-smoothness
-		self.lala1 = self.musked_inter[0:-1,0:-1]
-		self.lala2 = self.musked_inter[1:,1:]
-		self.sub_lala1_2 = self.lala1-self.lala2
+		self.lala1 = self.musked_inter[0:-1, 0:-1]
+		self.lala2 = self.musked_inter[1:, 1:]
+		self.sub_lala1_2 = self.lala1 - self.lala2
 		self.non_smoothness = tf.norm(self.sub_lala1_2, ord=2)
 		# loss is maxpooled confidence + distance_L2 + print smoothness
-		self.loss = self.Cp+self.punishment*self.distance_L2+self.smoothness_punishment*self.non_smoothness
+		self.loss = self.Cp + self.punishment * self.distance_L2 + \
+		    self.smoothness_punishment * self.non_smoothness
 		# set optimizer
-		self.optimizer = tf.train.AdamOptimizer(1e-2)#GradientDescentOptimizerAdamOptimizer
-		self.attack = self.optimizer.minimize(self.loss,var_list=[self.inter])#,var_list=[self.adversary]
+		# GradientDescentOptimizerAdamOptimizer
+		self.optimizer = tf.train.AdamOptimizer(1e-2)
+		self.attack = self.optimizer.minimize(
+		    self.loss, var_list=[self.inter])  # ,var_list=[self.adversary]
 		####################
 		self.sess = tf.Session()
 		self.sess.run(tf.global_variables_initializer())
-		#pdb.set_trace()
-		#print(tf.contrib.framework.get_variables())
-		saver = tf.train.Saver(tf.contrib.framework.get_variables()[1:-4])#[0:-1][1:-4]
-		saver.restore(self.sess,self.weights_file)
-		
-		if self.disp_console : print("Loading complete!" + '\n')
-		
+		# pdb.set_trace()
+		# print(tf.contrib.framework.get_variables())
+		saver = tf.train.Saver(tf.contrib.framework.get_variables()[
+		                       1:-4])  # [0:-1][1:-4]
+		saver.restore(self.sess, self.weights_file)
+
+		if self.disp_console: print("Loading complete!" + '\n')
+
 	def build_YOLO_model(self, image):
-		self.conv_1 = self.conv_layer(1,image,16,3,1)
-		self.pool_2 = self.pooling_layer(2,self.conv_1,2,2)
-		self.conv_3 = self.conv_layer(3,self.pool_2,32,3,1)
-		self.pool_4 = self.pooling_layer(4,self.conv_3,2,2)
-		self.conv_5 = self.conv_layer(5,self.pool_4,64,3,1)
-		self.pool_6 = self.pooling_layer(6,self.conv_5,2,2)
-		self.conv_7 = self.conv_layer(7,self.pool_6,128,3,1)
-		self.pool_8 = self.pooling_layer(8,self.conv_7,2,2)
-		self.conv_9 = self.conv_layer(9,self.pool_8,256,3,1)
-		self.pool_10 = self.pooling_layer(10,self.conv_9,2,2)
-		self.conv_11 = self.conv_layer(11,self.pool_10,512,3,1)
-		self.pool_12 = self.pooling_layer(12,self.conv_11,2,2)
-		self.conv_13 = self.conv_layer(13,self.pool_12,1024,3,1)
-		self.conv_14 = self.conv_layer(14,self.conv_13,1024,3,1)
-		self.conv_15 = self.conv_layer(15,self.conv_14,1024,3,1)
-		self.fc_16 = self.fc_layer(16,self.conv_15,256,flat=True,linear=False)
-		self.fc_17 = self.fc_layer(17,self.fc_16,4096,flat=False,linear=False)
-		#skip dropout_18
-		self.fc_19 = self.fc_layer(19,self.fc_17,1470,flat=False,linear=True)
-        
+		self.conv_1 = self.conv_layer(1, image, 16, 3, 1)
+		self.pool_2 = self.pooling_layer(2, self.conv_1, 2, 2)
+		self.conv_3 = self.conv_layer(3, self.pool_2, 32, 3, 1)
+		self.pool_4 = self.pooling_layer(4, self.conv_3, 2, 2)
+		self.conv_5 = self.conv_layer(5, self.pool_4, 64, 3, 1)
+		self.pool_6 = self.pooling_layer(6, self.conv_5, 2, 2)
+		self.conv_7 = self.conv_layer(7, self.pool_6, 128, 3, 1)
+		self.pool_8 = self.pooling_layer(8, self.conv_7, 2, 2)
+		self.conv_9 = self.conv_layer(9, self.pool_8, 256, 3, 1)
+		self.pool_10 = self.pooling_layer(10, self.conv_9, 2, 2)
+		self.conv_11 = self.conv_layer(11, self.pool_10, 512, 3, 1)
+		self.pool_12 = self.pooling_layer(12, self.conv_11, 2, 2)
+		self.conv_13 = self.conv_layer(13, self.pool_12, 1024, 3, 1)
+		self.conv_14 = self.conv_layer(14, self.conv_13, 1024, 3, 1)
+		self.conv_15 = self.conv_layer(15, self.conv_14, 1024, 3, 1)
+		self.fc_16 = self.fc_layer(16, self.conv_15, 256, flat=True, linear=False)
+		self.fc_17 = self.fc_layer(17, self.fc_16, 4096, flat=False, linear=False)
+		# skip dropout_18
+		self.fc_19 = self.fc_layer(19, self.fc_17, 1470, flat=False, linear=True)
+
+		return self.fc_19
+
+	def cond(self, i):
+		return i < self.n
+
+	def body(self, i):
+		self.build_YOLO_model(tf.contrib.image.transform(self.constrained, self.sample_matrixes[i]))
+		self.c = tf.reshape(tf.slice(self.fc_19,[0,0],[1,980]),(7,7,20))
+		self.s = tf.reshape(tf.slice(self.fc_19,[0,980],[1,98]),(7,7,2))
+		self.p1 = tf.multiply(self.c[:,:,14],self.s[:,:,0])
+		self.p2 = tf.multiply(self.c[:,:,14],self.s[:,:,1])
+		self.p = tf.stack([p1,p2],axis=0)
+		self.Cp_list.write(i, tf.reduce_max(self.p)) # confidence for people
+		return i + 1
+		# computer graph for norm 2 distance
+
+
 	def detect_from_cvmat(self,img,musk):
 		s = time.time()
 		self.h_img,self.w_img,_ = img.shape
@@ -159,15 +185,15 @@ class YOLO_TF:
 			# fetch something in self(tf.Variable)
 			net_output = self.sess.run([self.fc_19,self.attack,self.constrained,self.Cp,self.loss],feed_dict=in_dict)#,self.img,self.x,self.tmp0
 			print("step:",i,"Confidence:",net_output[3],"Loss:",net_output[4])
-		#pdb.set_trace()
+		# pdb.set_trace()
 		#########
-		#print(net_output[1],net_output[2],net_output[3])#,net_output[2],net_output[3],net_output[4]
+		# print(net_output[1],net_output[2],net_output[3])#,net_output[2],net_output[3],net_output[4]
 		self.result = self.interpret_output(net_output[0][0])
 		###
 		# reconstruct image from perturbation
 		ad_x=net_output[2]
 		ad_x_01=(ad_x/2.0)+0.5
-		#print(ad_x_01)
+		# print(ad_x_01)
 		###
 		'''
 		fig = plt.figure()
@@ -175,7 +201,7 @@ class YOLO_TF:
 		'''
 		# bx.imshow only take value between 0 and 1
 		squeezed=np.squeeze(ad_x_01)
-		#print(squeezed.max())
+		# print(squeezed.max())
 		'''
 		print("Adversarial result:")
 		bx.imshow(squeezed)
@@ -191,7 +217,7 @@ class YOLO_TF:
 		
 		savedname=time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
 		
-		#pdb.set_trace()
+		# pdb.set_trace()
 		path = r"/home/baidu/Program/Jay/YOLO_attack-1/result/"
 		is_saved=cv2.imwrite(path+savedname,reconstruct_img_np_squeezed)
 		if is_saved:
@@ -215,17 +241,17 @@ class YOLO_TF:
 	def detect_from_file(self,filename,muskfilename):#,muskfilename
 		if self.disp_console : print('Detect from ' + filename)
 		img = cv2.imread(filename)
-		#img = misc.imread(filename)
+		# img = misc.imread(filename)
 		f = open(muskfilename)
 		pic = plt.imread(filename)
 		dic = xmltodict.parse(f.read())
-		#str = json.dumps(dic)
+		# str = json.dumps(dic)
 
 		print("Input picture size:",dic['annotation']['size'])
-		#shape = [int(dic['annotation']['size']['height']),int(dic['annotation']['size']['width'])]
+		# shape = [int(dic['annotation']['size']['height']),int(dic['annotation']['size']['width'])]
 		print(type(img),img.shape)
 		musk = 0.000001*np.ones(shape=img.shape)
-		#print(pic)
+		# print(pic)
 		print("Generating Musk...")
 		for _object in dic['annotation']['object']:
 			xmin = int(_object['bndbox']['xmin'])
@@ -303,7 +329,7 @@ class YOLO_TF:
 		debug_yan=np.zeros((7,7,2))
 		for i in range(2):
 			debug_yan[:,:,i]=np.multiply(class_probs[:,:,14],scales[:,:,i])
-		#print(debug_yan.reshape(-1))
+		# print(debug_yan.reshape(-1))
 		boxes[:,:,:,0] += offset
 		boxes[:,:,:,1] += np.transpose(offset,(1,0,2))
 		boxes[:,:,:,0:2] = boxes[:,:,:,0:2] / 7.0
@@ -318,7 +344,7 @@ class YOLO_TF:
 		for i in range(2):
 			for j in range(20):
 				probs[:,:,i,j] = np.multiply(class_probs[:,:,j],scales[:,:,i])
-		#print probs
+		# print probs
 		filter_mat_probs = np.array(probs>=self.threshold,dtype='bool')
 		filter_mat_boxes = np.nonzero(filter_mat_probs)
 		
@@ -343,7 +369,7 @@ class YOLO_TF:
 		probs_filtered = probs_filtered[filter_iou]
 		
 		
-		#pdb.set_trace()
+		# pdb.set_trace()
 		classes_num_filtered = classes_num_filtered[filter_iou]
 
 		result = []
@@ -388,7 +414,7 @@ class YOLO_TF:
 	def readimage(self, filename):
 		if self.disp_console : print('Detect from ' + filename)
 		img = cv2.imread(filename)
-		#img = misc.imread(filename)
+		# img = misc.imread(filename)
 		s = time.time()
 		self.h_img,self.w_img,_ = img.shape
 		img_resized = cv2.resize(img, (448, 448))
@@ -407,7 +433,7 @@ class YOLO_TF:
 
 def main(argvs):
 	yolo = YOLO_TF(argvs)
-	#cv2.waitKey(5000)
+	# cv2.waitKey(5000)
 
 
 if __name__=='__main__':	
