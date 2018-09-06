@@ -8,7 +8,7 @@ import xmltodict
 import matplotlib.pyplot as plt
 from PIL import Image
 import time
-
+import transformation
 
 class YOLO_TF:
 	fromfile = None
@@ -52,6 +52,8 @@ class YOLO_TF:
 				
 	def build_networks(self):
 		if self.disp_console : print("Building YOLO_tiny graph...")
+
+		self.sample_matrixes = transformation.target_sample()
 		# x is the image
 		self.x = tf.placeholder('float32',[1,448,448,3])
 		self.musk = tf.placeholder('float32',[1,448,448,3])
@@ -65,24 +67,18 @@ class YOLO_TF:
 		self.musked_inter = tf.multiply(self.musk,self.inter)
 		self.shuru = tf.add(self.w,self.musked_inter)
 		self.constrained = tf.tanh(self.shuru)
+
+		
 		####
 		self.build_YOLO_model(self.constrained)
 		self.c = tf.reshape(tf.slice(self.fc_19,[0,0],[1,980]),(7,7,20))
 		self.s = tf.reshape(tf.slice(self.fc_19,[0,980],[1,98]),(7,7,2))
-		#self.probs = tf.Variable(tf.ones(shape=[]))
-		#self.probs = tf.placeholder('float32',[None,7,7,2])
-		#self.com=tf.constant(0.2*np.ones(98,dtype='float32'))
-		#pdb.set_trace()
 		self.p1 = tf.multiply(self.c[:,:,14],self.s[:,:,0])
 		self.p2 = tf.multiply(self.c[:,:,14],self.s[:,:,1])
 		self.p = tf.stack([self.p1,self.p2],axis=0)
-		#for i in range(2):
-			#self.probs[:,:,i].assign(tf.multiply(self.c[:,:,14],self.s[:,:,i]))
-		#self.probs=tf.concat([self.p1,self.p2],0)
-		#self.yan=tf.reduce_sum(tf.maximum(self.probs,0.2))
-		#self.yan=tf.reduce_sum(self.probs)
 		self.Cp = tf.reduce_max(self.p) # confidence for people
-		# computer graph for norm 2 distance
+
+
 		####################
 		# init an ad example
 		self.perturbation = self.x-self.constrained
