@@ -69,54 +69,29 @@ class YOLO_TF:
 		self.constrained = tf.tanh(self.shuru)
 		print(self.constrained)
 
-		# for id, sample_matrix in enumerate(self.sample_matrixes):
-		# 	if(id >= 2):
-		# 		break
-		# 	print("sample_matrix type is:", type(sample_matrix))
-		# 	tf.contrib.image.transform(self.constrained, sample_matrix)
+		tr_image = []
+		for id, sample_matrix in enumerate(self.sample_matrixes):
+			# if(id >= 2):
+				# break
+			print("sample_matrix type is:", type(sample_matrix))
+			tr_image.append(tf.contrib.image.transform(self.constrained, sample_matrix))
 
-		tr_image1 = tf.contrib.image.transform(self.constrained, self.sample_matrixes[0])
-		tr_image2 = tf.contrib.image.transform(self.constrained, self.sample_matrixes[1])
-
-		tr_image1_back = tf.atanh(tr_image1)
-		tr_image2_back = tf.atanh(tr_image2)
+		# tr_image1 = tf.contrib.image.transform(self.constrained, self.sample_matrixes[0])
+		# tr_image2 = tf.contrib.image.transform(self.constrained, self.sample_matrixes[1])
 
 		self.sess = tf.Session()
 		self.sess.run(tf.global_variables_initializer())
 		self.detect_from_file(self.fromfile,self.frommuskfile)
-		test_output = self.sess.run([tr_image1, tr_image2, tr_image1_back, tr_image2_back],feed_dict=self.in_dict)#,self.img,self.x,self.tmp0
+		test_output = self.sess.run(tr_image,feed_dict=self.in_dict)#,self.img,self.x,self.tmp0
 		# print("tr_image1",test_output[0],"tr_image2",test_output[1], "tr_image1_back", test_output[2], "tr_image2_back", test_output[3])
 		
-		test_output[0] = (test_output[0] + 1) / 2
-		test_output[1] = (test_output[1] + 1) / 2
-		print("tr_image1",test_output[0][0],"tr_image2",test_output[1][0])
-
-		img = np.zeros([448,448,3])
-		img1 = np.zeros([448,448,3])
-		img1[:,:,:] = test_output[0][0]
-		img1 = img1.astype(int)
-		print(img1[244][244])
-		print(img1)
-		print("type of test_output[0] is ", type(test_output[0]))
-		img[:,:,0] = np.ones([448,448])*64/255.0
-		img[:,:,1] = np.ones([448,448])*128/255.0
-		img[:,:,2] = np.ones([448,448])*192/255.0
-		# img[:,:,0] = test_outputp[0][]
-		# img[:,:,1] = np.ones([448,448])*128/255.0
-		# img[:,:,2] = np.ones([448,448])*192/255.0
-
-		# output_img1 = cv2.img(test_output[0])
-
 		cv2.namedWindow("output", cv2.WINDOW_NORMAL)
-
-		cv2.imshow('output', img)
-		cv2.waitKey()
-
-		cv2.imshow('output', img1)
-		cv2.waitKey()
-
-		cv2.imshow('output', test_output[1][0])
-		cv2.waitKey()
+		#test output
+		for id, output in enumerate(test_output):
+			output = (output + 1) / 2
+			print("tr_image", id, ": ", output)
+			cv2.imshow('output', output[0])
+			cv2.waitKey()
 
 
 		# ####
