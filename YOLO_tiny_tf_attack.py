@@ -67,42 +67,93 @@ class YOLO_TF:
 		self.musked_inter = tf.multiply(self.musk,self.inter)
 		self.shuru = tf.add(self.w,self.musked_inter)
 		self.constrained = tf.tanh(self.shuru)
+		print(self.constrained)
 
-		
-		####
-		self.build_YOLO_model(self.constrained)
-		self.c = tf.reshape(tf.slice(self.fc_19,[0,0],[1,980]),(7,7,20))
-		self.s = tf.reshape(tf.slice(self.fc_19,[0,980],[1,98]),(7,7,2))
-		self.p1 = tf.multiply(self.c[:,:,14],self.s[:,:,0])
-		self.p2 = tf.multiply(self.c[:,:,14],self.s[:,:,1])
-		self.p = tf.stack([self.p1,self.p2],axis=0)
-		self.Cp = tf.reduce_max(self.p) # confidence for people
+		# for id, sample_matrix in enumerate(self.sample_matrixes):
+		# 	if(id >= 2):
+		# 		break
+		# 	print("sample_matrix type is:", type(sample_matrix))
+		# 	tf.contrib.image.transform(self.constrained, sample_matrix)
 
+		tr_image1 = tf.contrib.image.transform(self.constrained, self.sample_matrixes[0])
+		tr_image2 = tf.contrib.image.transform(self.constrained, self.sample_matrixes[1])
 
-		####################
-		# init an ad example
-		self.perturbation = self.x-self.constrained
-		self.distance_L2 = tf.norm(self.perturbation, ord=2)
-		self.punishment = tf.placeholder('float32',[1])
-		# non-smoothness
-		self.lala1 = self.musked_inter[0:-1,0:-1]
-		self.lala2 = self.musked_inter[1:,1:]
-		self.sub_lala1_2 = self.lala1-self.lala2
-		self.non_smoothness = tf.norm(self.sub_lala1_2, ord=2)
-		# loss is maxpooled confidence + distance_L2 + print smoothness
-		self.loss = self.Cp+self.punishment*self.distance_L2+self.smoothness_punishment*self.non_smoothness
-		# set optimizer
-		self.optimizer = tf.train.AdamOptimizer(1e-2)#GradientDescentOptimizerAdamOptimizer
-		self.attack = self.optimizer.minimize(self.loss,var_list=[self.inter])#,var_list=[self.adversary]
-		####################
+		tr_image1_back = tf.atanh(tr_image1)
+		tr_image2_back = tf.atanh(tr_image2)
+
 		self.sess = tf.Session()
 		self.sess.run(tf.global_variables_initializer())
-		#pdb.set_trace()
-		#print(tf.contrib.framework.get_variables())
-		saver = tf.train.Saver(tf.contrib.framework.get_variables()[1:-4])#[0:-1][1:-4]
-		saver.restore(self.sess,self.weights_file)
+		self.detect_from_file(self.fromfile,self.frommuskfile)
+		test_output = self.sess.run([tr_image1, tr_image2, tr_image1_back, tr_image2_back],feed_dict=self.in_dict)#,self.img,self.x,self.tmp0
+		# print("tr_image1",test_output[0],"tr_image2",test_output[1], "tr_image1_back", test_output[2], "tr_image2_back", test_output[3])
 		
-		if self.disp_console : print("Loading complete!" + '\n')
+		test_output[0] = (test_output[0] + 1) / 2
+		test_output[1] = (test_output[1] + 1) / 2
+		print("tr_image1",test_output[0][0],"tr_image2",test_output[1][0])
+
+		img = np.zeros([448,448,3])
+		img1 = np.zeros([448,448,3])
+		img1[:,:,:] = test_output[0][0]
+		img1 = img1.astype(int)
+		print(img1[244][244])
+		print(img1)
+		print("type of test_output[0] is ", type(test_output[0]))
+		img[:,:,0] = np.ones([448,448])*64/255.0
+		img[:,:,1] = np.ones([448,448])*128/255.0
+		img[:,:,2] = np.ones([448,448])*192/255.0
+		# img[:,:,0] = test_outputp[0][]
+		# img[:,:,1] = np.ones([448,448])*128/255.0
+		# img[:,:,2] = np.ones([448,448])*192/255.0
+
+		# output_img1 = cv2.img(test_output[0])
+
+		cv2.namedWindow("output", cv2.WINDOW_NORMAL)
+
+		cv2.imshow('output', img)
+		cv2.waitKey()
+
+		cv2.imshow('output', img1)
+		cv2.waitKey()
+
+		cv2.imshow('output', test_output[1][0])
+		cv2.waitKey()
+
+
+		# ####
+		# self.build_YOLO_model(self.constrained)
+		# self.c = tf.reshape(tf.slice(self.fc_19,[0,0],[1,980]),(7,7,20))
+		# self.s = tf.reshape(tf.slice(self.fc_19,[0,980],[1,98]),(7,7,2))
+		# self.p1 = tf.multiply(self.c[:,:,14],self.s[:,:,0])
+		# self.p2 = tf.multiply(self.c[:,:,14],self.s[:,:,1])
+		# self.p = tf.stack([self.p1,self.p2],axis=0)
+		# self.Cp = tf.reduce_max(self.p) # confidence for people
+
+
+
+		# ####################
+		# # init an ad example
+		# self.perturbation = self.x-self.constrained
+		# self.distance_L2 = tf.norm(self.perturbation, ord=2)
+		# self.punishment = tf.placeholder('float32',[1])
+		# # non-smoothness
+		# self.lala1 = self.musked_inter[0:-1,0:-1]
+		# self.lala2 = self.musked_inter[1:,1:]
+		# self.sub_lala1_2 = self.lala1-self.lala2
+		# self.non_smoothness = tf.norm(self.sub_lala1_2, ord=2)
+		# # loss is maxpooled confidence + distance_L2 + print smoothness
+		# self.loss = self.Cp+self.punishment*self.distance_L2+self.smoothness_punishment*self.non_smoothness
+		# # set optimizer
+		# self.optimizer = tf.train.AdamOptimizer(1e-2)#GradientDescentOptimizerAdamOptimizer
+		# self.attack = self.optimizer.minimize(self.loss,var_list=[self.inter])#,var_list=[self.adversary]
+		# ####################
+		# self.sess = tf.Session()
+		# self.sess.run(tf.global_variables_initializer())
+		# #pdb.set_trace()
+		# #print(tf.contrib.framework.get_variables())
+		# saver = tf.train.Saver(tf.contrib.framework.get_variables()[1:-4])#[0:-1][1:-4]
+		# saver.restore(self.sess,self.weights_file)
+		
+		# if self.disp_console : print("Loading complete!" + '\n')
 		
 	def build_YOLO_model(self, image):
 		self.conv_1 = self.conv_layer(1,image,16,3,1)
@@ -144,61 +195,61 @@ class YOLO_TF:
 		# search step for a single attack
 		steps = 100
 		# set original image and punishment
-		in_dict = {self.x: inputs,
+		self.in_dict = {self.x: inputs,
 		self.punishment:punishment,
 		self.musk:inputs_musk,
 		self.smoothness_punishment:smoothness_punishment
 		}#,self.img:inputs
-		# attack
-		print("YOLO attack...")
-		for i in range(steps):
-			# fetch something in self(tf.Variable)
-			net_output = self.sess.run([self.fc_19,self.attack,self.constrained,self.Cp,self.loss],feed_dict=in_dict)#,self.img,self.x,self.tmp0
-			print("step:",i,"Confidence:",net_output[3],"Loss:",net_output[4])
-		#pdb.set_trace()
-		#########
-		#print(net_output[1],net_output[2],net_output[3])#,net_output[2],net_output[3],net_output[4]
-		self.result = self.interpret_output(net_output[0][0])
-		###
-		# reconstruct image from perturbation
-		ad_x=net_output[2]
-		ad_x_01=(ad_x/2.0)+0.5
-		#print(ad_x_01)
-		###
-		'''
-		fig = plt.figure()
-		bx = fig.add_subplot(111)
-		'''
-		# bx.imshow only take value between 0 and 1
-		squeezed=np.squeeze(ad_x_01)
-		#print(squeezed.max())
-		'''
-		print("Adversarial result:")
-		bx.imshow(squeezed)
-		plt.show()
-		'''
-		ad_x_squeezed=np.squeeze(ad_x)
-		reconstruct_img_resized_np=(ad_x_squeezed+1.0)/2.0*255.0
-		print("min and max in img(numpy form):",reconstruct_img_resized_np.min(),reconstruct_img_resized_np.max())
+		# # attack
+		# print("YOLO attack...")
+		# for i in range(steps):
+		# 	# fetch something in self(tf.Variable)
+		# 	net_output = self.sess.run([self.fc_19,self.attack,self.constrained,self.Cp,self.loss],feed_dict=in_dict)#,self.img,self.x,self.tmp0
+		# 	print("step:",i,"Confidence:",net_output[3],"Loss:",net_output[4])
+		# #pdb.set_trace()
+		# #########
+		# #print(net_output[1],net_output[2],net_output[3])#,net_output[2],net_output[3],net_output[4]
+		# self.result = self.interpret_output(net_output[0][0])
+		# ###
+		# # reconstruct image from perturbation
+		# ad_x=net_output[2]
+		# ad_x_01=(ad_x/2.0)+0.5
+		# #print(ad_x_01)
+		# ###
+		# '''
+		# fig = plt.figure()
+		# bx = fig.add_subplot(111)
+		# '''
+		# # bx.imshow only take value between 0 and 1
+		# squeezed=np.squeeze(ad_x_01)
+		# #print(squeezed.max())
+		# '''
+		# print("Adversarial result:")
+		# bx.imshow(squeezed)
+		# plt.show()
+		# '''
+		# ad_x_squeezed=np.squeeze(ad_x)
+		# reconstruct_img_resized_np=(ad_x_squeezed+1.0)/2.0*255.0
+		# print("min and max in img(numpy form):",reconstruct_img_resized_np.min(),reconstruct_img_resized_np.max())
 		
-		reconstruct_img_BGR= cv2.cvtColor(reconstruct_img_resized_np,cv2.COLOR_RGB2BGRA)
-		reconstruct_img_np=cv2.resize(reconstruct_img_BGR,(self.w_img,self.h_img))#reconstruct_img_BGR
-		reconstruct_img_np_squeezed=np.squeeze(reconstruct_img_np)
+		# reconstruct_img_BGR= cv2.cvtColor(reconstruct_img_resized_np,cv2.COLOR_RGB2BGRA)
+		# reconstruct_img_np=cv2.resize(reconstruct_img_BGR,(self.w_img,self.h_img))#reconstruct_img_BGR
+		# reconstruct_img_np_squeezed=np.squeeze(reconstruct_img_np)
 		
-		savedname=time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
+		# savedname=time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
 		
-		#pdb.set_trace()
-		path = r"/home/baidu/Program/Jay/YOLO_attack-1/result/"
-		is_saved=cv2.imwrite(path+savedname,reconstruct_img_np_squeezed)
-		if is_saved:
-			print("Saved under: ",path+savedname)
-		else:
-			print("Saving error!")
+		# #pdb.set_trace()
+		# path = r"/home/baidu/Program/Jay/YOLO_attack-1/result/"
+		# is_saved=cv2.imwrite(path+savedname,reconstruct_img_np_squeezed)
+		# if is_saved:
+		# 	print("Saved under: ",path+savedname)
+		# else:
+		# 	print("Saving error!")
 
-		print("Attack finished!")
-		self.show_results(img ,self.result)
-		strtime = str(time.time()-s)
-		if self.disp_console : print('Elapsed time : ' + strtime + ' secs' + '\n')
+		# print("Attack finished!")
+		# self.show_results(img ,self.result)
+		# strtime = str(time.time()-s)
+		# if self.disp_console : print('Elapsed time : ' + strtime + ' secs' + '\n')
 
 	# generate Musk
 	def generate_Musk(self,musk, xmin,ymin,xmax,ymax):
