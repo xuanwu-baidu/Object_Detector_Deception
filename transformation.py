@@ -10,23 +10,13 @@ import xmltodict
 
 # transform it.
 
-sample_6para = [[0,0,0,0,0,0], \
-# for TF transformation.
-# [5,0,0,0,0,0], \
-# [10, 0,0,0,0,0], \
-# [15, 0,0,0,0,0], \
-# [20, 0,0,0,0,0], \
-# [25, 0,0,0,0,0], \
-# [30, 0,0,0,0,0], \
-# [35, 0,0,0,0,0], \
+HALF_SZ = 224
+# HALF_SZ = 1512
+SCALE = 224.0 / 1512.0
 
-# [0, 10,0,0,0,0], \
-# [0, 30,0,0,0,0], \
-# [0, 60,0,0,0,0], \
-# [0, 0,10,0,0,0], \
-# [0, 0,30,0,0,0], \
-# [0, 0,60,0,0,0], \
-
+sample_6para = [ \
+# # Sample Translation for Original Photo
+[0,0,0,0,0,0], \
 [5,0,0,0,0,0], \
 [20, 0,0,0,0,0], \
 [100, 0,0,0,0,0], \
@@ -46,36 +36,12 @@ sample_6para = [[0,0,0,0,0,0], \
 # when move some step along Y, picture go up
 # when move some step along Z, picture shrink
 
-# for TF transformation.
-# [0, 0,0,math.pi/6,0,0], \
-# [0, 0,0,math.pi/3,0,0], \
-# [0, 0,0,math.pi/2,0,0], \
-# [0, 0,0,math.pi*4/3,0,0], \
 
-# [0, 0,0,0,-math.pi/6,0], \
-# [0, 0,0,0,-math.pi/12,0], \
-# [0, 0,0,0,0,0], \
-# [0, 0,0,0,math.pi/12,0], \
-# [0, 0,0,0,math.pi/6,0], \
-# [0, 0,0,0,math.pi/4,0], \
-# [0, 0,0,0,math.pi/3,0], \
-# [0, 0,0,0,math.pi/12*5,0], \
-# [0, 0,0,0,math.pi/2,0], \
-
-# [0, 0,0,0,0,-math.pi/6], \
-# [0, 0,0,0,0,-math.pi/12], \
-# [0, 0,0,0,0,0], \
-# [0, 0,0,0,0,math.pi/12], \
-# [0, 0,0,0,0,math.pi/6], \
-# [0, 0,0,0,0,math.pi/4], \
-# [0, 0,0,0,0,math.pi/3], \
-# [0, 0,0,0,0,math.pi/12*5], \
-# [0, 0,0,0,0,math.pi/2], \
-
-# [0, 0,900,math.pi/6,0,0], \
-# [0, 0,900,math.pi/3,0,0], \
-# [0, 0,900,math.pi/2,0,0], \
-# [0, 0,900,math.pi*4/3,0,0], \
+# Sample Rotation for Original Photo
+[0, 0,900,math.pi/6,0,0], \
+[0, 0,900,math.pi/3,0,0], \
+[0, 0,900,math.pi/2,0,0], \
+[0, 0,900,math.pi*4/3,0,0], \
 
 [0, 0,900,0,-math.pi/6,0], \
 [0, 0,900,0,-math.pi/12,0], \
@@ -85,7 +51,7 @@ sample_6para = [[0,0,0,0,0,0], \
 [0, 0,900,0,math.pi/4,0], \
 [0, 0,900,0,math.pi/3,0], \
 [0, 0,900,0,math.pi/12*5,0], \
-[0, 0,900,0,math.pi/2,0], \
+# [0, 0,900,0,math.pi/2,0], \
 
 [0, 0,900,0,0,-math.pi/6], \
 [0, 0,900,0,0,-math.pi/12], \
@@ -95,14 +61,15 @@ sample_6para = [[0,0,0,0,0,0], \
 [0, 0,900,0,0,math.pi/4], \
 [0, 0,900,0,0,math.pi/3], \
 [0, 0,900,0,0,math.pi/12*5], \
-[0, 0,900,0,0,math.pi/2], \
+# [0, 0,900,0,0,math.pi/2], \
 
 # sample success: when sticker rotate positively alpha around z-axis, the sticker on the image turns around z-axis unclockwise.
 # when sticker rotate positively beta aound y-axis, the sticker on the image turns around y-axis negatively(mirror)
 # when sticker rotate positively gamma around x-axis, the sticker on the image turns around x-axis negatively(mirror)
 
 # analysis: actually for the rotation of a plane, it doesn't matter it is rotated clockwisely or unclockwisely.
-[0, 5, 0, 0, 0, 0] ]
+# [0, 5, 0, 0, 0, 0] \
+]
 
 
 
@@ -154,28 +121,28 @@ def target_sample():
 	print(xmin,ymin,xmax,ymax)
 
 
-	x_f0 = - (xmax - xmin) / 2
-	y_f0 = - (ymax - ymin) / 2
+	x_f0 = - (xmax - xmin) / 2 * SCALE
+	y_f0 = - (ymax - ymin) / 2 * SCALE
 	print(x_f0, y_f0)
 
-	x_0f0_1 = 1512 + x_f0
-	y_0f0_1 = 1512 + y_f0
+	x_0f0_1 = HALF_SZ + x_f0
+	y_0f0_1 = HALF_SZ + y_f0
 
-	x_0f0_2 = 1512 - x_f0
-	y_0f0_2 = 1512 + y_f0
+	x_0f0_2 = HALF_SZ - x_f0
+	y_0f0_2 = HALF_SZ + y_f0
 
-	x_0f0_3 = 1512 + x_f0
-	y_0f0_3 = 1512 - y_f0
+	x_0f0_3 = HALF_SZ + x_f0
+	y_0f0_3 = HALF_SZ - y_f0
 
-	x_0f0_4 = 1512 - x_f0
-	y_0f0_4 = 1512 - y_f0
+	x_0f0_4 = HALF_SZ - x_f0
+	y_0f0_4 = HALF_SZ - y_f0
 
 
 	pts1 = np.float32([[x_0f0_1,y_0f0_1],[x_0f0_2,y_0f0_2],[x_0f0_3,y_0f0_3], [x_0f0_4,y_0f0_4]])
 	# print(pts1)
 
 	# get camera focal length f (unit pixel) with A4 paper parameter.
-	f = (-2000) / 92.3 * x_f0
+	f = (-2000) / 92.3 * x_f0 * SCALE
 	print ("estimate focal length: ", f, " pixel")
 
 	# 3 points of A4 paper in camera coordinate system.
@@ -234,29 +201,29 @@ def target_sample():
 
 		x_f_1 = x_f0 * V1_[0] / V1_[2] * (-2000) / 92.3
 		y_f_1 = y_f0 * V1_[1] / V1_[2] * (2000) / 135.8
-		x_0f_1 = 1512 + x_f_1
-		y_0f_1 = 1512 + y_f_1
+		x_0f_1 = HALF_SZ + x_f_1
+		y_0f_1 = HALF_SZ + y_f_1
 		# print("x_f0 is: ", x_f0, "\nx_f_1 is: ", x_f_1)
 		# print("y_f0 is: ", y_f0, "\ny_f_1 is: ", y_f_1)
 
 		x_f_2 = x_f0 * V2_[0] / V2_[2] * (-2000) / 92.3
 		y_f_2 = y_f0 * V2_[1] / V2_[2] * (2000) / 135.8
-		x_0f_2 = 1512 + x_f_2
-		y_0f_2 = 1512 + y_f_2
+		x_0f_2 = HALF_SZ + x_f_2
+		y_0f_2 = HALF_SZ + y_f_2
 		# print("x_f0 is: ", x_f0, "\nx_f_2 is: ", x_f_2)
 		# print("y_f0 is: ", y_f0, "\ny_f_2 is: ", y_f_2)
 
 		x_f_3 = x_f0 * V3_[0] / V3_[2] * (-2000) / 92.3
 		y_f_3 = y_f0 * V3_[1] / V3_[2] * (2000) / 135.8
-		x_0f_3 = 1512 + x_f_3
-		y_0f_3 = 1512 + y_f_3
+		x_0f_3 = HALF_SZ + x_f_3
+		y_0f_3 = HALF_SZ + y_f_3
 		# print("x_f0 is: ", x_f0, "\nx_f_3 is: ", x_f_3)
 		# print("y_f0 is: ", y_f0, "\ny_f_3 is: ", y_f_3)
 
 		x_f_4 = x_f0 * V4_[0] / V4_[2] * (-2000) / 92.3
 		y_f_4 = y_f0 * V4_[1] / V4_[2] * (2000) / 135.8
-		x_0f_4 = 1512 + x_f_4
-		y_0f_4 = 1512 + y_f_4
+		x_0f_4 = HALF_SZ + x_f_4
+		y_0f_4 = HALF_SZ + y_f_4
 
 		# if(x_0f_1 < 0 or x_0f_1 > 3024 or y_0f_1 < 0 or y_0f_1 > 3024 or x_0f_2 < 0 or x_0f_2 > 3024 or \
 			# y_0f_2 < 0 or y_0f_2 > 3024 or x_0f_3 < 0 or x_0f_3 > 3024 or y_0f_3 < 0 or y_0f_3 > 3024):
@@ -265,7 +232,8 @@ def target_sample():
 		# print("pts1 is: ", pts1, "\npts2 is:", pts2)
 
 		# M = cv2.getAffineTransform(pts1,pts2)
-		M = cv2.getPerspectiveTransform(pts1,pts2)
+		M0 = cv2.getPerspectiveTransform(pts1,pts2)
+		M = cv2.getPerspectiveTransform(pts2,pts1)
 		print("M is ", M)
 		print("M element is ", [M[0][0], M[0][1], M[0][2], M[1][0], M[1][1], M[1][2], M[2][0], M[2][1]])
 
@@ -274,13 +242,13 @@ def target_sample():
 		sample_matrixes.append([M[0][0], M[0][1], M[0][2], M[1][0], M[1][1], M[1][2], M[2][0], M[2][1]])
 
 		# dst = cv2.warpAffine(img, M, (width, height))
-		dst = cv2.warpPerspective(img, M, (width, height))
 		img_resized = cv2.resize(img, (448, 448))
-		dst_resized = cv2.resize(dst, (448, 448))
+		dst_resized = cv2.warpPerspective(img_resized, M0, (448, 448))
+		# dst_resized = cv2.resize(dst, (448, 448))
 								
-		cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
-		cv2.imshow('camera', dst_resized)
-		cv2.waitKey()
+		# cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
+		# cv2.imshow('camera', dst_resized)
+		# cv2.waitKey()
 	return sample_matrixes
 
 	# Shift
@@ -330,14 +298,14 @@ def random_sample():
 	y_f0 = - (ymax - ymin) / 2
 	print(x_f0, y_f0)
 
-	x_0f0_1 = 1512 + x_f0
-	y_0f0_1 = 1512 + y_f0
+	x_0f0_1 = HALF_SZ + x_f0
+	y_0f0_1 = HALF_SZ + y_f0
 
-	x_0f0_2 = 1512 - x_f0
-	y_0f0_2 = 1512 + y_f0
+	x_0f0_2 = HALF_SZ - x_f0
+	y_0f0_2 = HALF_SZ + y_f0
 
-	x_0f0_3 = 1512 + x_f0
-	y_0f0_3 = 1512 - y_f0
+	x_0f0_3 = HALF_SZ + x_f0
+	y_0f0_3 = HALF_SZ - y_f0
 
 
 	pts1 = np.float32([[x_0f0_1,y_0f0_1],[x_0f0_2,y_0f0_2],[x_0f0_3,y_0f0_3]])
@@ -386,22 +354,22 @@ def random_sample():
 						
 							x_f_1 = x_f0 * V1_[0] / V1_[2] * (-2000) / 92.3
 							y_f_1 = y_f0 * V1_[1] / V1_[2] * (2000) / 135.8
-							x_0f_1 = 1512 + x_f_1
-							y_0f_1 = 1512 + y_f_1
+							x_0f_1 = HALF_SZ + x_f_1
+							y_0f_1 = HALF_SZ + y_f_1
 							print("x_f0 is: ", x_f0, "\nx_f_1 is: ", x_f_1)
 							print("y_f0 is: ", y_f0, "\ny_f_1 is: ", y_f_1)
 					
 							x_f_2 = x_f0 * V2_[0] / V2_[2] * (-2000) / 92.3
 							y_f_2 = y_f0 * V2_[1] / V2_[2] * (2000) / 135.8
-							x_0f_2 = 1512 + x_f_2
-							y_0f_2 = 1512 + y_f_2
+							x_0f_2 = HALF_SZ + x_f_2
+							y_0f_2 = HALF_SZ + y_f_2
 							print("x_f0 is: ", x_f0, "\nx_f_2 is: ", x_f_2)
 							print("y_f0 is: ", y_f0, "\ny_f_2 is: ", y_f_2)
 					
 							x_f_3 = x_f0 * V3_[0] / V3_[2] * (-2000) / 92.3
 							y_f_3 = y_f0 * V3_[1] / V3_[2] * (2000) / 135.8
-							x_0f_3 = 1512 + x_f_3
-							y_0f_3 = 1512 + y_f_3
+							x_0f_3 = HALF_SZ + x_f_3
+							y_0f_3 = HALF_SZ + y_f_3
 							print("x_f0 is: ", x_f0, "\nx_f_3 is: ", x_f_3)
 							print("y_f0 is: ", y_f0, "\ny_f_3 is: ", y_f_3)
 					
