@@ -11,7 +11,7 @@ import xmltodict
 # transform it.
 
 sample_6para = [[0,0,0,0,0,0], \
-[5,0,0,0,0,0], \
+[2000,0,0,0,0,0], \
 [20, 0,0,0,0,0], \
 [100, 0,0,0,0,0], \
 [300, 0,0,0,0,0], \
@@ -208,7 +208,7 @@ def target_sample():
 		pts2 = np.float32([[x_0f_1, y_0f_1],[x_0f_2, y_0f_2],[x_0f_3, y_0f_3]])
 		# print("pts1 is: ", pts1, "\npts2 is:", pts2)
 		M = cv2.getAffineTransform(pts1,pts2)
-		
+		print("M is ", M)
 		# return 8 number parameter
 		sample_matrixes.append([M[0][0], M[0][1], M[0][2], M[1][0], M[1][1], M[1][2], 0, 0])
 
