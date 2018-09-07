@@ -218,18 +218,17 @@ class YOLO_TF:
         punishment = np.array([0.0])
         smoothness_punishment = np.array([0.5])
         # search step for a single attack
-        steps = 1500
+        steps = 300
         # set original image and punishment
         in_dict = {self.x: inputs,
         self.punishment:punishment,
         self.musk:inputs_musk,
-        self.smoothness_punishment:smoothness_punishment
-        }#,self.img:inputs
+        self.smoothness_punishment:smoothness_punishment}
         # attack
         print("YOLO attack...")
         for i in range(steps):
             # fetch something in self(tf.Variable)
-            net_output = self.sess.run([self.fc_19,self.attack,self.constrained,self.max_Cp,self.loss],feed_dict=in_dict)#,self.img,self.x,self.tmp0
+            net_output = self.sess.run([self.fc_19,self.attack,self.constrained,self.max_Cp,self.loss],feed_dict=in_dict)
             print("step:",i,"Confidence:",net_output[3],"Loss:",net_output[4])
         #pdb.set_trace()
         #########
@@ -261,21 +260,60 @@ class YOLO_TF:
         reconstruct_img_np=cv2.resize(reconstruct_img_BGR,(self.w_img,self.h_img))#reconstruct_img_BGR
         reconstruct_img_np_squeezed=np.squeeze(reconstruct_img_np)
 
-        savedname=time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
+        self.whole_pic_savedname=time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
 
         #pdb.set_trace()
-        path = r"/home/baidu/Program/Jay/YOLO_attack-1/result/"
-        is_saved=cv2.imwrite(path+savedname,reconstruct_img_np_squeezed)
+        self.path = r"/home/baidu/Program/Jay/YOLO_attack-1/result/"
+        is_saved=cv2.imwrite(self.path+self.whole_pic_savedname,reconstruct_img_np_squeezed)
         if is_saved:
-            print("Saved under: ",path+savedname)
+            print("Result saved under: ",self.path+self.whole_pic_savedname)
         else:
             print("Saving error!")
-
+        
         print("Attack finished!")
+        pdb.set_trace()
+        # choose to generate invisible clothe
+        user_input = input("Do you want an invisible clothe? Yes/No:")
+        while user_input!="No":
+            if user_input=="Yes":
+                print("Ok!")
+                self.generate_sticker(reconstruct_img_np_squeezed)
+                break
+            elif user_input=="No":
+                print("Bye-Bye!")
+                break
+            else:
+                print("Wrong command!")
+                user_input = input("Do you want an invisible clothe? Yes/No:")
+        
         self.show_results(img ,self.result)
         strtime = str(time.time()-s)
         if self.disp_console : print('Elapsed time : ' + strtime + ' secs' + '\n')
+    
+    # generate_sticker saved under result folder
+    def generate_sticker(self, pic_in_numpy_0_255):
+        is_saved = None
+        self.sitcker_savedname = "sticker_"+self.whole_pic_savedname
+        _object = self.musk_list[0]
+        xmin = int(_object['bndbox']['xmin'])
+        ymin = int(_object['bndbox']['ymin'])
+        xmax = int(_object['bndbox']['xmax'])
+        ymax = int(_object['bndbox']['ymax'])
+        print(xmin,ymin,xmax,ymax)
+        # squeezed = np.squeeze(pic_in_numpy_0_255)
+        sticker_in_numpy_0_255 = pic_in_numpy_0_255[ymin:ymax,xmin:xmax]
+        # resized to US letter size
+        assert sticker_in_numpy_0_255 is not None
+        # sticker_in_numpy_0_255 = cv2.resize(sticker_in_numpy_0_255,(612,792))
 
+        is_saved=cv2.imwrite(self.path+self.sitcker_savedname,sticker_in_numpy_0_255)
+        if is_saved:
+            print("Sticker saved under:")
+        else:
+            print("Sticker saving error")
+
+        return is_saved
+    
     # generate Musk
     def generate_Musk(self,musk, xmin,ymin,xmax,ymax):
         for i in range(xmin,xmax):
@@ -299,7 +337,8 @@ class YOLO_TF:
         musk = 0.000001*np.ones(shape=img.shape)
         #print(pic)
         print("Generating Musk...")
-        for _object in dic['annotation']['object']:
+        self.musk_list = dic['annotation']['object']
+        for _object in self.musk_list:
             xmin = int(_object['bndbox']['xmin'])
             ymin = int(_object['bndbox']['ymin'])
             xmax = int(_object['bndbox']['xmax'])
@@ -422,19 +461,6 @@ class YOLO_TF:
         if tb < 0 or lr < 0 : intersection = 0
         else : intersection =  tb*lr
         return intersection / (box1[2]*box1[3] + box2[2]*box2[3] - intersection)
-
-    def readimage(self, filename):
-        if self.disp_console : print('Detect from ' + filename)
-        img = cv2.imread(filename)
-        #img = misc.imread(filename)
-        s = time.time()
-        self.h_img,self.w_img,_ = img.shape
-        img_resized = cv2.resize(img, (448, 448))
-        img_RGB = cv2.cvtColor(img_resized,cv2.COLOR_BGR2RGB)
-        img_resized_np = np.asarray( img_RGB )
-        inputs = np.zeros((1,448,448,3),dtype='float32')
-        inputs[0] = (img_resized_np/255.0)*2.0-1.0
-        self.inputs = inputs
 
     def training(self): #TODO add training function
         return None
