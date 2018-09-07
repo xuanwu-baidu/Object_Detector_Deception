@@ -53,6 +53,7 @@ class YOLO_TF:
 
     def build_YOLO_attack_graph(self):
         if self.disp_console : print("Building YOLO attack graph...")
+        self.sample_matrixes = transformation.target_sample()
         # x is the image
         self.x = tf.placeholder('float32',[1,448,448,3])
         self.musk = tf.placeholder('float32',[1,448,448,3])
@@ -77,15 +78,12 @@ class YOLO_TF:
         ################################################# 
         # build graph to compute the largest Cp among all pictures using the for loop
         # transform original picture over EOT
-        self.another_constrained = self.constrained*0.99
-        pdb.set_trace()
-        #####
-        
-        print(tf.AUTO_REUSE)
-        with tf.variable_scope("") as scope:# .reuse_variables()
-            scope.reuse_variables()
-            self.another_Cp = self.YOLO_model(self.another_constrained,mode="reuse_model")
-        self.max_Cp = tf.maximum(self.max_Cp,0)
+        for id, sample_matrix in enumerate(self.sample_matrixes):
+        	self.another_constrained = tf.contrib.image.transform(self.constrained, sample_matrix)
+        	with tf.variable_scope("") as scope:# .reuse_variables()
+        	    scope.reuse_variables()
+        	    self.another_Cp = self.YOLO_model(self.another_constrained,mode="reuse_model")
+        	self.max_Cp = tf.maximum(self.max_Cp,0)
         #####
         #################################################
         # computer graph for norm 2 distance
