@@ -125,8 +125,11 @@ def target_sample():
 	x_0f0_3 = 1512 + x_f0
 	y_0f0_3 = 1512 - y_f0
 
+	x_0f0_4 = 1512 - x_f0
+	y_0f0_4 = 1512 - y_f0
 
-	pts1 = np.float32([[x_0f0_1,y_0f0_1],[x_0f0_2,y_0f0_2],[x_0f0_3,y_0f0_3]])
+
+	pts1 = np.float32([[x_0f0_1,y_0f0_1],[x_0f0_2,y_0f0_2],[x_0f0_3,y_0f0_3], [x_0f0_4,y_0f0_4]])
 	# print(pts1)
 
 	# get camera focal length f (unit pixel) with A4 paper parameter.
@@ -137,13 +140,15 @@ def target_sample():
 	x1, y1, z1 = -92.3, 135.8, 2000
 	x2, y2, z2 = 92.3, 135.8, 2000
 	x3, y3, z3 = -92.3, -135.8, 2000
+	x4, y4, z4 = 92.3, -135.8, 2000
 	print(x1, y2, z3)
 
 	V1 = np.array([x1, y1, z1])
 	V2 = np.array([x2, y2, z2])
 	V3 = np.array([x3, y3, z3])
+	V4 = np.array([x4, y4, z4])
 	print(V1[0])
-	print (V1, V2, V3)
+	print (V1, V2, V3, V4)
 
 
 	# sample x,y,z  a,b,g: 0~2*pi, -pi/2 ~ pi/2
@@ -165,21 +170,25 @@ def target_sample():
 		V1_self = np.array([V1[0], V1[1], 0])
 		V2_self = np.array([V2[0], V2[1], 0])
 		V3_self = np.array([V3[0], V3[1], 0])
+		V4_self = np.array([V4[0], V4[1], 0])
 		# print ("V1, V2, V3 self is:", V1_self, V2_self, V3_self)
 
 		V1_self_ = transform6para(V1_self, 0, 0, 0, a, b, g)
 		V2_self_ = transform6para(V2_self, 0, 0, 0, a, b, g)
 		V3_self_ = transform6para(V3_self, 0, 0, 0, a, b, g)
+		V4_self_ = transform6para(V4_self, 0, 0, 0, a, b, g)
 		# print ("V1, V2, V3 self_ is:", V1_self_, V2_self_, V3_self_)
 		
 		V1_ = np.array([V1_self_[0], V1_self_[1], V1_self_[2] + V1[2]])
 		V2_ = np.array([V2_self_[0], V2_self_[1], V2_self_[2] + V2[2]])
 		V3_ = np.array([V3_self_[0], V3_self_[1], V3_self_[2] + V3[2]])
+		V4_ = np.array([V4_self_[0], V4_self_[1], V4_self_[2] + V4[2]])
 
 		'''transform in camera xyz coordinate system. '''
 		V1_ = transform6para(V1_, x, y, z, 0, 0, 0)
 		V2_ = transform6para(V2_, x, y, z, 0, 0, 0)
 		V3_ = transform6para(V3_, x, y, z, 0, 0, 0)
+		V4_ = transform6para(V4_, x, y, z, 0, 0, 0)
 
 		x_f_1 = x_f0 * V1_[0] / V1_[2] * (-2000) / 92.3
 		y_f_1 = y_f0 * V1_[1] / V1_[2] * (2000) / 135.8
@@ -202,17 +211,27 @@ def target_sample():
 		# print("x_f0 is: ", x_f0, "\nx_f_3 is: ", x_f_3)
 		# print("y_f0 is: ", y_f0, "\ny_f_3 is: ", y_f_3)
 
+		x_f_4 = x_f0 * V4_[0] / V4_[2] * (-2000) / 92.3
+		y_f_4 = y_f0 * V4_[1] / V4_[2] * (2000) / 135.8
+		x_0f_4 = 1512 + x_f_4
+		y_0f_4 = 1512 + y_f_4
+
 		# if(x_0f_1 < 0 or x_0f_1 > 3024 or y_0f_1 < 0 or y_0f_1 > 3024 or x_0f_2 < 0 or x_0f_2 > 3024 or \
 			# y_0f_2 < 0 or y_0f_2 > 3024 or x_0f_3 < 0 or x_0f_3 > 3024 or y_0f_3 < 0 or y_0f_3 > 3024):
 			# continue
-		pts2 = np.float32([[x_0f_1, y_0f_1],[x_0f_2, y_0f_2],[x_0f_3, y_0f_3]])
+		pts2 = np.float32([[x_0f_1, y_0f_1],[x_0f_2, y_0f_2],[x_0f_3, y_0f_3], [x_0f_4, y_0f_4]])
 		# print("pts1 is: ", pts1, "\npts2 is:", pts2)
-		M = cv2.getAffineTransform(pts1,pts2)
-		print("M is ", M)
-		# return 8 number parameter
-		sample_matrixes.append([M[0][0], M[0][1], M[0][2], M[1][0], M[1][1], M[1][2], 0, 0])
 
-		dst = cv2.warpAffine(img, M, (width, height))
+		# M = cv2.getAffineTransform(pts1,pts2)
+		M = cv2.getPerspectiveTransform(pts1,pts2)
+		print("M is ", M)
+
+
+		# return 8 number parameter
+		sample_matrixes.append([M[0][0], M[0][1], M[0][2], M[1][0], M[1][1], M[1][2], M[2][0], M[2][1]])
+
+		# dst = cv2.warpAffine(img, M, (width, height))
+		dst = cv2.warpPerspective(img, M, (width, height))
 		img_resized = cv2.resize(img, (448, 448))
 		dst_resized = cv2.resize(dst, (448, 448))
 								

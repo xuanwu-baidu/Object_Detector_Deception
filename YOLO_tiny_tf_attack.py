@@ -74,6 +74,7 @@ class YOLO_TF:
 			# if(id >= 2):
 				# break
 			print("sample_matrix type is:", type(sample_matrix))
+			print(sample_matrix)
 			tr_image.append(tf.contrib.image.transform(self.constrained, sample_matrix))
 
 		# tr_image1 = tf.contrib.image.transform(self.constrained, self.sample_matrixes[0])
@@ -89,7 +90,7 @@ class YOLO_TF:
 		#test output
 		for id, output in enumerate(test_output):
 			output = (output + 1) / 2
-			print("tr_image", id, ": ", output)
+			# print("tr_image", id, ": ", output)
 			cv2.imshow('output', output[0])
 			cv2.waitKey()
 
