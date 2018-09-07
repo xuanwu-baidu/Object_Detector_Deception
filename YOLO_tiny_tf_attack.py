@@ -78,10 +78,9 @@ class YOLO_TF:
         # build graph to compute the largest Cp among all pictures using the for loop
         # transform original picture over EOT
         self.another_constrained = self.constrained*0.99
-        pdb.set_trace()
         #####
         
-        print(tf.AUTO_REUSE)
+        print("Building EOT YOLO graph!")
         with tf.variable_scope("") as scope:# .reuse_variables()
             scope.reuse_variables()
             self.another_Cp = self.YOLO_model(self.another_constrained,mode="reuse_model")
@@ -106,7 +105,6 @@ class YOLO_TF:
         ####################
         self.sess = tf.Session() # config=tf.ConfigProto(log_device_placement=True)
         self.sess.run(tf.global_variables_initializer())
-        pdb.set_trace()
         #print(tf.contrib.framework.get_variables())
         saver = tf.train.Saver(YOLO_variables)#[0:-1][1:-4]
         saver.restore(self.sess,self.weights_file)
@@ -117,17 +115,17 @@ class YOLO_TF:
     def YOLO_model(self, image, mode="init_model"):
         assert mode=="init_model" or mode=="reuse_model"
         self.conv_1 = self.conv_layer(1,image,16,3,1,'Variable:0', 'Variable_1:0',mode=mode)
-        self.pool_2 = self.pooling_layer(2,self.conv_1,2,2,)
+        self.pool_2 = self.pooling_layer(2,self.conv_1,2,2,mode=mode)
         self.conv_3 = self.conv_layer(3,self.pool_2,32,3,1,'Variable_2:0', 'Variable_3:0',mode=mode)
-        self.pool_4 = self.pooling_layer(4,self.conv_3,2,2)
+        self.pool_4 = self.pooling_layer(4,self.conv_3,2,2,mode=mode)
         self.conv_5 = self.conv_layer(5,self.pool_4,64,3,1,'Variable_4:0', 'Variable_5:0',mode=mode)
-        self.pool_6 = self.pooling_layer(6,self.conv_5,2,2)
+        self.pool_6 = self.pooling_layer(6,self.conv_5,2,2,mode=mode)
         self.conv_7 = self.conv_layer(7,self.pool_6,128,3,1,'Variable_6:0', 'Variable_7:0',mode=mode)
-        self.pool_8 = self.pooling_layer(8,self.conv_7,2,2)
+        self.pool_8 = self.pooling_layer(8,self.conv_7,2,2,mode=mode)
         self.conv_9 = self.conv_layer(9,self.pool_8,256,3,1,'Variable_8:0', 'Variable_9:0',mode=mode)
-        self.pool_10 = self.pooling_layer(10,self.conv_9,2,2)
+        self.pool_10 = self.pooling_layer(10,self.conv_9,2,2,mode=mode)
         self.conv_11 = self.conv_layer(11,self.pool_10,512,3,1,'Variable_10:0', 'Variable_11:0',mode=mode)
-        self.pool_12 = self.pooling_layer(12,self.conv_11,2,2)
+        self.pool_12 = self.pooling_layer(12,self.conv_11,2,2,mode=mode)
         self.conv_13 = self.conv_layer(13,self.pool_12,1024,3,1,'Variable_12:0', 'Variable_13:0',mode=mode)
         self.conv_14 = self.conv_layer(14,self.conv_13,1024,3,1,'Variable_14:0', 'Variable_15:0',mode=mode)
         self.conv_15 = self.conv_layer(15,self.conv_14,1024,3,1,'Variable_16:0', 'Variable_17:0',mode=mode)
@@ -170,11 +168,11 @@ class YOLO_TF:
 
         conv = tf.nn.conv2d(inputs_pad, weight, strides=[1, stride, stride, 1], padding='VALID',name=str(idx)+'_conv')	
         conv_biased = tf.add(conv,biases,name=str(idx)+'_conv_biased')	
-        if self.disp_console : print('    Layer  %d : Type = Conv, Size = %d * %d, Stride = %d, Filters = %d, Input channels = %d' % (idx,size,size,stride,filters,int(channels)))
+        if self.disp_console and mode=="init_model": print('    Layer  %d : Type = Conv, Size = %d * %d, Stride = %d, Filters = %d, Input channels = %d' % (idx,size,size,stride,filters,int(channels)))
         return tf.maximum(self.alpha*conv_biased,conv_biased,name=str(idx)+'_leaky_relu')
 
-    def pooling_layer(self,idx,inputs,size,stride):
-        if self.disp_console : print('    Layer  %d : Type = Pool, Size = %d * %d, Stride = %d' % (idx,size,size,stride))
+    def pooling_layer(self,idx,inputs,size,stride,mode="init_model"):
+        if self.disp_console and mode=="init_model": print('    Layer  %d : Type = Pool, Size = %d * %d, Stride = %d' % (idx,size,size,stride))
         return tf.nn.max_pool(inputs, ksize=[1, size, size, 1],strides=[1, stride, stride, 1], padding='SAME',name=str(idx)+'_pool')
 
     def fc_layer(self,idx,inputs,hiddens,weight_name,biases_name,flat = False,linear = False,mode="init_model"):
@@ -196,7 +194,7 @@ class YOLO_TF:
             weight = tf.get_variable(name=weight_name[:-2])
             biases = tf.get_variable(name=biases_name[:-2])
         
-        if self.disp_console : print('    Layer  %d : Type = Full, Hidden = %d, Input dimension = %d, Flat = %d, Activation = %d' % (idx,hiddens,int(dim),int(flat),1-int(linear))	)
+        if self.disp_console and mode=="init_model": print('    Layer  %d : Type = Full, Hidden = %d, Input dimension = %d, Flat = %d, Activation = %d' % (idx,hiddens,int(dim),int(flat),1-int(linear))	)
         if linear : return tf.add(tf.matmul(inputs_processed,weight),biases,name=str(idx)+'_fc')
         ip = tf.add(tf.matmul(inputs_processed,weight),biases)
         return tf.maximum(self.alpha*ip,ip,name=str(idx)+'_fc')
