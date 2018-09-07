@@ -75,7 +75,7 @@ class YOLO_TF:
 				# break
 			print("sample_matrix type is:", type(sample_matrix))
 			print(sample_matrix)
-			tr_image.append(tf.contrib.image.transform(self.constrained, sample_matrix))
+			tr_image.append(tf.contrib.image.transform(self.constrained, sample_matrix, interpolation='NEAREST'))
 
 		# tr_image1 = tf.contrib.image.transform(self.constrained, self.sample_matrixes[0])
 		# tr_image2 = tf.contrib.image.transform(self.constrained, self.sample_matrixes[1])

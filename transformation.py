@@ -11,7 +11,23 @@ import xmltodict
 # transform it.
 
 sample_6para = [[0,0,0,0,0,0], \
-[2000,0,0,0,0,0], \
+# for TF transformation.
+# [5,0,0,0,0,0], \
+# [10, 0,0,0,0,0], \
+# [15, 0,0,0,0,0], \
+# [20, 0,0,0,0,0], \
+# [25, 0,0,0,0,0], \
+# [30, 0,0,0,0,0], \
+# [35, 0,0,0,0,0], \
+
+# [0, 10,0,0,0,0], \
+# [0, 30,0,0,0,0], \
+# [0, 60,0,0,0,0], \
+# [0, 0,10,0,0,0], \
+# [0, 0,30,0,0,0], \
+# [0, 0,60,0,0,0], \
+
+[5,0,0,0,0,0], \
 [20, 0,0,0,0,0], \
 [100, 0,0,0,0,0], \
 [300, 0,0,0,0,0], \
@@ -30,10 +46,36 @@ sample_6para = [[0,0,0,0,0,0], \
 # when move some step along Y, picture go up
 # when move some step along Z, picture shrink
 
-[0, 0,900,math.pi/6,0,0], \
-[0, 0,900,math.pi/3,0,0], \
-[0, 0,900,math.pi/2,0,0], \
-[0, 0,900,math.pi*4/3,0,0], \
+# for TF transformation.
+# [0, 0,0,math.pi/6,0,0], \
+# [0, 0,0,math.pi/3,0,0], \
+# [0, 0,0,math.pi/2,0,0], \
+# [0, 0,0,math.pi*4/3,0,0], \
+
+# [0, 0,0,0,-math.pi/6,0], \
+# [0, 0,0,0,-math.pi/12,0], \
+# [0, 0,0,0,0,0], \
+# [0, 0,0,0,math.pi/12,0], \
+# [0, 0,0,0,math.pi/6,0], \
+# [0, 0,0,0,math.pi/4,0], \
+# [0, 0,0,0,math.pi/3,0], \
+# [0, 0,0,0,math.pi/12*5,0], \
+# [0, 0,0,0,math.pi/2,0], \
+
+# [0, 0,0,0,0,-math.pi/6], \
+# [0, 0,0,0,0,-math.pi/12], \
+# [0, 0,0,0,0,0], \
+# [0, 0,0,0,0,math.pi/12], \
+# [0, 0,0,0,0,math.pi/6], \
+# [0, 0,0,0,0,math.pi/4], \
+# [0, 0,0,0,0,math.pi/3], \
+# [0, 0,0,0,0,math.pi/12*5], \
+# [0, 0,0,0,0,math.pi/2], \
+
+# [0, 0,900,math.pi/6,0,0], \
+# [0, 0,900,math.pi/3,0,0], \
+# [0, 0,900,math.pi/2,0,0], \
+# [0, 0,900,math.pi*4/3,0,0], \
 
 [0, 0,900,0,-math.pi/6,0], \
 [0, 0,900,0,-math.pi/12,0], \
@@ -225,6 +267,7 @@ def target_sample():
 		# M = cv2.getAffineTransform(pts1,pts2)
 		M = cv2.getPerspectiveTransform(pts1,pts2)
 		print("M is ", M)
+		print("M element is ", [M[0][0], M[0][1], M[0][2], M[1][0], M[1][1], M[1][2], M[2][0], M[2][1]])
 
 
 		# return 8 number parameter
@@ -235,9 +278,9 @@ def target_sample():
 		img_resized = cv2.resize(img, (448, 448))
 		dst_resized = cv2.resize(dst, (448, 448))
 								
-		# cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
-		# cv2.imshow('camera', dst_resized)
-		# cv2.waitKey()
+		cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
+		cv2.imshow('camera', dst_resized)
+		cv2.waitKey()
 	return sample_matrixes
 
 	# Shift
