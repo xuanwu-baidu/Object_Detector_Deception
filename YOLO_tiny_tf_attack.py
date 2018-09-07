@@ -53,6 +53,7 @@ class YOLO_TF:
 
     def build_YOLO_attack_graph(self):
         if self.disp_console : print("Building YOLO attack graph...")
+        self.sample_matrixes = transformation.target_sample()
         # x is the image
         self.x = tf.placeholder('float32',[1,448,448,3])
         self.musk = tf.placeholder('float32',[1,448,448,3])
@@ -74,17 +75,18 @@ class YOLO_TF:
         YOLO_variables = tf.contrib.framework.get_variables()[1:]
         # unused
         YOLO_variables_name = [variable.name for variable in YOLO_variables]
-        ################################################# 
+        #################################################
         # build graph to compute the largest Cp among all pictures using the for loop
         # transform original picture over EOT
         self.another_constrained = self.constrained*0.99
         #####
-        
         print("Building EOT YOLO graph!")
-        with tf.variable_scope("") as scope:# .reuse_variables()
-            scope.reuse_variables()
-            self.another_Cp = self.YOLO_model(self.another_constrained,mode="reuse_model")
-        self.max_Cp = tf.maximum(self.max_Cp,0)
+        for id, sample_matrix in enumerate(self.sample_matrixes):
+            self.another_constrained = tf.contrib.image.transform(self.constrained, sample_matrix)
+            with tf.variable_scope("") as scope:# .reuse_variables()
+                scope.reuse_variables()
+                self.another_Cp = self.YOLO_model(self.another_constrained,mode="reuse_model")
+            self.max_Cp = tf.maximum(self.max_Cp,self.another_Cp)
         #####
         #################################################
         # computer graph for norm 2 distance
@@ -216,7 +218,7 @@ class YOLO_TF:
         punishment = np.array([0.0])
         smoothness_punishment = np.array([0.5])
         # search step for a single attack
-        steps = 10
+        steps = 1500
         # set original image and punishment
         in_dict = {self.x: inputs,
         self.punishment:punishment,
