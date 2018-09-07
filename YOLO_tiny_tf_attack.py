@@ -69,18 +69,21 @@ class YOLO_TF:
         ####
         
         self.max_Cp = self.YOLO_model(self.constrained,mode="init_model")
-        print(tf.AUTO_REUSE)
-        # tf.get_variable_scope().reuse_variables()
         
         YOLO_variables = tf.contrib.framework.get_variables()[1:]
+        # unused
         YOLO_variables_name = [variable.name for variable in YOLO_variables]
         ################################################# 
         # build graph to compute the largest Cp among all pictures using the for loop
         # transform original picture over EOT
-        # self.another_constrained = self.constrained*0.99
+        self.another_constrained = self.constrained*0.99
         pdb.set_trace()
         #####
-        #self.another_Cp = self.YOLO_model(self.another_constrained,mode="reuse_model")
+        
+        print(tf.AUTO_REUSE)
+        with tf.variable_scope("") as scope:# .reuse_variables()
+            scope.reuse_variables()
+            self.another_Cp = self.YOLO_model(self.another_constrained,mode="reuse_model")
         self.max_Cp = tf.maximum(self.max_Cp,0)
         #####
         #################################################
