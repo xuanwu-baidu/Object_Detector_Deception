@@ -8,6 +8,7 @@ import xmltodict
 import matplotlib.pyplot as plt
 from PIL import Image
 import time
+import transformation
 
 
 class YOLO_TF:
@@ -435,17 +436,12 @@ class YOLO_TF:
         inputs[0] = (img_resized_np/255.0)*2.0-1.0
         self.inputs = inputs
 
-    def training(self): #TODO add training function!
-
+    def training(self): #TODO add training function
         return None
-
-
-
 
 def main(argvs):
     yolo = YOLO_TF(argvs)
     #cv2.waitKey(5000)
-
 
 if __name__=='__main__':	
     main(sys.argv)
