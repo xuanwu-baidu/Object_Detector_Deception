@@ -1,0 +1,38 @@
+<annotation>
+	<folder>ooooooooooooooooooriginal_photo_Darren</folder>
+	<filename>92.JPG</filename>
+	<path>C:\Users\sadde\Documents\Launch Project\YOLO_detector\test\pure_digital_attack_without_EOT_50pics\ooooooooooooooooooriginal_photo_Darren\92.JPG</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>4032</width>
+		<height>3024</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>attack_zone</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>1845</xmin>
+			<ymin>934</ymin>
+			<xmax>2203</xmax>
+			<ymax>1618</ymax>
+		</bndbox>
+	</object>
+	<object>
+		<name>attack_zone</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>3767</xmin>
+			<ymin>82</ymin>
+			<xmax>3806</xmax>
+			<ymax>108</ymax>
+		</bndbox>
+	</object>
+</annotation>
