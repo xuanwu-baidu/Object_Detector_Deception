@@ -1,7 +1,7 @@
 <annotation>
 	<folder>test</folder>
-	<filename>Darren.jpg</filename>
-	<path>C:/Users/sadde/eclipse-workspace/Launch_project/prepare/YOLO_attack/test/Darren.jpg</path>
+	<filename>Darren.JPG</filename>
+	<path>C:/Users/sadde/Documents/Launch Project/YOLO_attack-1/test/Darren.JPG</path>
 	<source>
 		<database>Unknown</database>
 	</source>
@@ -12,27 +12,27 @@
 	</size>
 	<segmented>0</segmented>
 	<object>
-		<name>attack_zone</name>
+		<name>magic_stone</name>
 		<pose>Unspecified</pose>
 		<truncated>0</truncated>
 		<difficult>0</difficult>
 		<bndbox>
-			<xmin>2070</xmin>
-			<ymin>1080</ymin>
-			<xmax>2402</xmax>
-			<ymax>1660</ymax>
+			<xmin>631</xmin>
+			<ymin>1535</ymin>
+			<xmax>1135</xmax>
+			<ymax>2196</ymax>
 		</bndbox>
 	</object>
 	<object>
-		<name>attack_zone</name>
+		<name>magic_stone</name>
 		<pose>Unspecified</pose>
 		<truncated>0</truncated>
 		<difficult>0</difficult>
 		<bndbox>
-			<xmin>3773</xmin>
-			<ymin>1228</ymin>
-			<xmax>3796</xmax>
-			<ymax>1251</ymax>
+			<xmin>3670</xmin>
+			<ymin>79</ymin>
+			<xmax>3686</xmax>
+			<ymax>82</ymax>
 		</bndbox>
 	</object>
 </annotation>

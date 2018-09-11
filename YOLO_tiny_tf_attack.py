@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import time
 import transformation
-
+import os
+import re
 
 class YOLO_TF:
     fromfile = None
@@ -18,6 +19,8 @@ class YOLO_TF:
     imshow = False
     filewrite_img = False
     filewrite_txt = False
+    useEOT = False
+    Do_you_want_ad_sticker = False
     disp_console = True
     weights_file = 'weights/YOLO_tiny.ckpt'
     alpha = 0.1
@@ -32,28 +35,61 @@ class YOLO_TF:
     h_img = 480
 
     def __init__(self,argvs = []):
+        self.success = 0
+        self.overall_pics = 0
         self.argv_parser(argvs)
         self.build_YOLO_attack_graph()
         self.training()
-        if self.fromfile is not None and  self.frommuskfile is not None: self.detect_from_file(self.fromfile,self.frommuskfile)#,self.muskfile  and  self.muskfile is not None
+        if self.fromfile is not None and  self.frommuskfile is not None:
+            self.detect_from_file(self.fromfile,self.frommuskfile)
+        if self.fromfolder is not None:
+            filename_list = os.listdir(self.fromfolder)
+            # take pics name out and construct xml filename to read from
+            for filename in filename_list:
+                pic_name = re.match(r'\d+.JPG',filename)
+                
+                if pic_name is not None:
+                    self.overall_pics+=1
+                    print("Pics number:",self.overall_pics,"The",pic_name[0],\
+                         "!")
+                    print()
+                    pic_musk_name = pic_name[0][:-3]+"xml"
+                    fromfile = self.fromfolder+"/"+pic_name[0]
+                    frommusk = self.fromfolder+"/"+pic_musk_name
+                    self.detect_from_file(fromfile,frommusk)
+            print("Attack success rate:", self.success/self.overall_pics)
+
     def argv_parser(self,argvs):
         for i in range(1,len(argvs),2):
             # read picture file
             if argvs[i] == '-fromfile' : self.fromfile = argvs[i+1]
-            # read muskfile
+            if argvs[i] == '-fromfolder' : 
+                self.fromfolder = argvs[i+1]
+            else:
+                self.fromfolder = None
             if argvs[i] == '-frommuskfile' : self.frommuskfile = argvs[i+1]
             if argvs[i] == '-tofile_img' : self.tofile_img = argvs[i+1] ; self.filewrite_img = True
             if argvs[i] == '-tofile_txt' : self.tofile_txt = argvs[i+1] ; self.filewrite_txt = True
             if argvs[i] == '-imshow' :
                 if argvs[i+1] == '1' :self.imshow = True
                 else : self.imshow = False
+            if argvs[i] == '-useEOT' :
+                if argvs[i+1] == '1' :self.useEOT = True
+                else : self.useEOT = False
+            if argvs[i] == '-Do_you_want_ad_sticker' :
+                if argvs[i+1] == '1' :self.Do_you_want_ad_sticker = True
+                else : self.Do_you_want_ad_sticker = False
             if argvs[i] == '-disp_console' :
                 if argvs[i+1] == '1' :self.disp_console = True
                 else : self.disp_console = False
 
     def build_YOLO_attack_graph(self):
         if self.disp_console : print("Building YOLO attack graph...")
-        self.sample_matrixes = transformation.target_sample()
+        
+        if self.useEOT == True:
+            self.sample_matrixes = transformation.random_sample_33()
+        else:
+            pass
         # x is the image
         self.x = tf.placeholder('float32',[1,448,448,3])
         self.musk = tf.placeholder('float32',[1,448,448,3])
@@ -78,15 +114,19 @@ class YOLO_TF:
         #################################################
         # build graph to compute the largest Cp among all pictures using the for loop
         # transform original picture over EOT
-        self.another_constrained = self.constrained*0.99
         #####
-        print("Building EOT YOLO graph!")
-        for id, sample_matrix in enumerate(self.sample_matrixes):
-            self.another_constrained = tf.contrib.image.transform(self.constrained, sample_matrix)
-            with tf.variable_scope("") as scope:# .reuse_variables()
-                scope.reuse_variables()
-                self.another_Cp = self.YOLO_model(self.another_constrained,mode="reuse_model")
-            self.max_Cp = tf.maximum(self.max_Cp,self.another_Cp)
+        if self.useEOT == True:
+            print("Building EOT YOLO graph!")
+            for id, sample_matrix in enumerate(self.sample_matrixes):
+                self.another_constrained = tf.contrib.image.transform(self.constrained, sample_matrix)
+                with tf.variable_scope("") as scope:# .reuse_variables()
+                    scope.reuse_variables()
+                    self.another_Cp = self.YOLO_model(self.another_constrained,mode="reuse_model")
+                # self.max_Cp = tf.maximum(self.max_Cp,self.another_Cp)
+                self.max_Cp += self.another_Cp
+        else:
+            print("EOT mode disabled!")
+            
         #####
         #################################################
         # computer graph for norm 2 distance
@@ -140,7 +180,6 @@ class YOLO_TF:
         #self.probs = tf.Variable(tf.ones(shape=[]))
         #self.probs = tf.placeholder('float32',[None,7,7,2])
         #self.com=tf.constant(0.2*np.ones(98,dtype='float32'))
-        #pdb.set_trace()
         self.p1 = tf.multiply(self.c[:,:,14],self.s[:,:,0])
         self.p2 = tf.multiply(self.c[:,:,14],self.s[:,:,1])
         self.p = tf.stack([self.p1,self.p2],axis=0)
@@ -215,10 +254,10 @@ class YOLO_TF:
         # image in numpy format
         self.inputs = inputs
         # hyperparameter to control two optimization objectives
-        punishment = np.array([0.0])
+        punishment = np.array([0.01])
         smoothness_punishment = np.array([0.5])
         # search step for a single attack
-        steps = 300
+        steps = 100
         # set original image and punishment
         in_dict = {self.x: inputs,
         self.punishment:punishment,
@@ -230,7 +269,6 @@ class YOLO_TF:
             # fetch something in self(tf.Variable)
             net_output = self.sess.run([self.fc_19,self.attack,self.constrained,self.max_Cp,self.loss],feed_dict=in_dict)
             print("step:",i,"Confidence:",net_output[3],"Loss:",net_output[4])
-        #pdb.set_trace()
         #########
         #print(net_output[1],net_output[2],net_output[3])#,net_output[2],net_output[3],net_output[4]
         self.result = self.interpret_output(net_output[0][0])
@@ -260,9 +298,8 @@ class YOLO_TF:
         reconstruct_img_np=cv2.resize(reconstruct_img_BGR,(self.w_img,self.h_img))#reconstruct_img_BGR
         reconstruct_img_np_squeezed=np.squeeze(reconstruct_img_np)
 
-        self.whole_pic_savedname=time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
+        self.whole_pic_savedname=str(self.overall_pics)+".jpg" # time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
 
-        #pdb.set_trace()
         self.path = r"/home/baidu/Program/Jay/YOLO_attack-1/result/"
         is_saved=cv2.imwrite(self.path+self.whole_pic_savedname,reconstruct_img_np_squeezed)
         if is_saved:
@@ -271,10 +308,10 @@ class YOLO_TF:
             print("Saving error!")
         
         print("Attack finished!")
-        pdb.set_trace()
         # choose to generate invisible clothe
-        user_input = input("Do you want an invisible clothe? Yes/No:")
-        while user_input!="No":
+        user_input = "Yes"
+        while user_input!="No" and self.Do_you_want_ad_sticker is True:
+            user_input = input("Do you want an invisible clothe? Yes/No:")
             if user_input=="Yes":
                 print("Ok!")
                 self.generate_sticker(reconstruct_img_np_squeezed)
@@ -308,7 +345,7 @@ class YOLO_TF:
 
         is_saved=cv2.imwrite(self.path+self.sitcker_savedname,sticker_in_numpy_0_255)
         if is_saved:
-            print("Sticker saved under:")
+            print("Sticker saved under:",str(self.path))
         else:
             print("Sticker saving error")
 
@@ -420,7 +457,6 @@ class YOLO_TF:
         probs_filtered = probs_filtered[filter_iou]
 
 
-        #pdb.set_trace()
         classes_num_filtered = classes_num_filtered[filter_iou]
 
         result = []
@@ -433,11 +469,13 @@ class YOLO_TF:
         img_cp = img.copy()
         if self.filewrite_txt :
             ftxt = open(self.tofile_txt,'w')
+        class_results_set = set()
         for i in range(len(results)):
             x = int(results[i][1])
             y = int(results[i][2])
             w = int(results[i][3])//2
             h = int(results[i][4])//2
+            class_results_set.add(results[i][0])
             if self.disp_console : print('    class : ' + results[i][0] + ' , [x,y,w,h]=[' + str(x) + ',' + str(y) + ',' + str(int(results[i][3])) + ',' + str(int(results[i][4]))+'], Confidence = ' + str(results[i][5]))
             if self.filewrite_img or self.imshow:
                 cv2.rectangle(img_cp,(x-w,y-h),(x+w,y+h),(0,255,0),2)
@@ -445,6 +483,11 @@ class YOLO_TF:
                 cv2.putText(img_cp,results[i][0] + ' : %.2f' % results[i][5],(x-w+5,y-h-7),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,0),1)
             if self.filewrite_txt :				
                 ftxt.write(results[i][0] + ',' + str(x) + ',' + str(y) + ',' + str(w) + ',' + str(h)+',' + str(results[i][5]) + '\n')
+        if "person" not in class_results_set:
+            self.success+=1
+            print("Attack succeeded!")
+        else:
+            print("Attack failed!")
         if self.filewrite_img : 
             if self.disp_console : print('    image file writed : ' + self.tofile_img)
             cv2.imwrite(self.tofile_img,img_cp)			
