@@ -258,6 +258,7 @@ class YOLO_TF:
         smoothness_punishment = np.array([0.5])
         # search step for a single attack
         steps = 100
+
         # set original image and punishment
         in_dict = {self.x: inputs,
         self.punishment:punishment,
