@@ -3,11 +3,17 @@
 Hi,
 
 This is a demo for attacking YOLO TINY.
+Paper:
+	http://gixnetwork.org/wp-content/uploads/2018/12/Building-Towards-Invisible-Cloak_compressed.pdf
 
 How to Use this code:
-1. Get into the path of the YOLO_tiny_tf_attack
+1. Get into the path of the YOLO_tiny_tf_attack.
+
 2. Run command:
     python YOLO_tiny_tf_attack.py -fromfile test/Darren.jpg -frommuskfile test/Darren.xml
-3. Tuning the hyperparameter self.punishment and attack steps. Ensure the target condifence is descending below 0.2
-4. When meet the end condition, the adversary example will be stored in result
 
+3. Tuning the hyperparameter self.punishment and attack steps. Ensure the target condifence is below 0.2.
+
+4. When meeting the end condition, the program will save the adversary example will in ./result.
+
+5. See source code for more attack option.
