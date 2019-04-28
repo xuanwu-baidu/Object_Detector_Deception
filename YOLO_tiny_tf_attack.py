@@ -13,14 +13,16 @@ import os
 import re
 
 class YOLO_TF:
+    # init global variable in YOLO_TF instance
     fromfile = None
+    fromfolder = None
     tofile_img = 'test/output.jpg'
     tofile_txt = 'test/output.txt'
     imshow = False
     filewrite_img = False
     filewrite_txt = False
-    useEOT = False
-    Do_you_want_ad_sticker = False
+    useEOT = True
+    Do_you_want_ad_sticker = True
     disp_console = True
     weights_file = 'weights/YOLO_tiny.ckpt'
     alpha = 0.1
@@ -40,45 +42,48 @@ class YOLO_TF:
         self.argv_parser(argvs)
         self.build_YOLO_attack_graph()
         self.training()
-        if self.fromfile is not None and  self.frommuskfile is not None:
-            self.detect_from_file(self.fromfile,self.frommuskfile)
+        if self.fromfile is not None and self.frommuskfile is not None:
+            self.detect_from_file(self.fromfile, self.frommuskfile)
+            
         if self.fromfolder is not None:
             filename_list = os.listdir(self.fromfolder)
             # take pics name out and construct xml filename to read from
             for filename in filename_list:
-                pic_name = re.match(r'\d+.JPG',filename)
+                pic_name = re.match(r'\d+.JPG', filename)
                 
                 if pic_name is not None:
                     self.overall_pics+=1
-                    print("Pics number:",self.overall_pics,"The",pic_name[0],\
-                         "!")
-                    print()
+                    print("Pics number:",self.overall_pics,"The",pic_name[0], "!")
+
                     pic_musk_name = pic_name[0][:-3]+"xml"
                     fromfile = self.fromfolder+"/"+pic_name[0]
                     frommusk = self.fromfolder+"/"+pic_musk_name
-                    self.detect_from_file(fromfile,frommusk)
+                    
+                    self.detect_from_file(fromfile, frommusk)
+                    
             print("Attack success rate:", self.success/self.overall_pics)
 
     def argv_parser(self,argvs):
         for i in range(1,len(argvs),2):
             # read picture file
             if argvs[i] == '-fromfile' : self.fromfile = argvs[i+1]
-            if argvs[i] == '-fromfolder' : 
-                self.fromfolder = argvs[i+1]
-            else:
-                self.fromfolder = None
+            if argvs[i] == '-fromfolder' : self.fromfolder = argvs[i+1]
             if argvs[i] == '-frommuskfile' : self.frommuskfile = argvs[i+1]
             if argvs[i] == '-tofile_img' : self.tofile_img = argvs[i+1] ; self.filewrite_img = True
             if argvs[i] == '-tofile_txt' : self.tofile_txt = argvs[i+1] ; self.filewrite_txt = True
+
             if argvs[i] == '-imshow' :
                 if argvs[i+1] == '1' :self.imshow = True
                 else : self.imshow = False
+                    
             if argvs[i] == '-useEOT' :
                 if argvs[i+1] == '1' :self.useEOT = True
                 else : self.useEOT = False
+                    
             if argvs[i] == '-Do_you_want_ad_sticker' :
                 if argvs[i+1] == '1' :self.Do_you_want_ad_sticker = True
                 else : self.Do_you_want_ad_sticker = False
+                    
             if argvs[i] == '-disp_console' :
                 if argvs[i+1] == '1' :self.disp_console = True
                 else : self.disp_console = False
@@ -207,8 +212,8 @@ class YOLO_TF:
         pad_mat = np.array([[0,0],[pad_size,pad_size],[pad_size,pad_size],[0,0]])
         inputs_pad = tf.pad(inputs,pad_mat)
 
-        conv = tf.nn.conv2d(inputs_pad, weight, strides=[1, stride, stride, 1], padding='VALID',name=str(idx)+'_conv')	
-        conv_biased = tf.add(conv,biases,name=str(idx)+'_conv_biased')	
+        conv = tf.nn.conv2d(inputs_pad, weight, strides=[1, stride, stride, 1], padding='VALID',name=str(idx)+'_conv')    
+        conv_biased = tf.add(conv,biases,name=str(idx)+'_conv_biased')    
         if self.disp_console and mode=="init_model": print('    Layer  %d : Type = Conv, Size = %d * %d, Stride = %d, Filters = %d, Input channels = %d' % (idx,size,size,stride,filters,int(channels)))
         return tf.maximum(self.alpha*conv_biased,conv_biased,name=str(idx)+'_leaky_relu')
 
@@ -217,7 +222,7 @@ class YOLO_TF:
         return tf.nn.max_pool(inputs, ksize=[1, size, size, 1],strides=[1, stride, stride, 1], padding='SAME',name=str(idx)+'_pool')
 
     def fc_layer(self,idx,inputs,hiddens,weight_name,biases_name,flat = False,linear = False,mode="init_model"):
-        input_shape = inputs.get_shape().as_list()		
+        input_shape = inputs.get_shape().as_list()        
         if flat:
             dim = input_shape[1]*input_shape[2]*input_shape[3]
             inputs_transposed = tf.transpose(inputs,(0,3,1,2))
@@ -235,7 +240,7 @@ class YOLO_TF:
             weight = tf.get_variable(name=weight_name[:-2])
             biases = tf.get_variable(name=biases_name[:-2])
         
-        if self.disp_console and mode=="init_model": print('    Layer  %d : Type = Full, Hidden = %d, Input dimension = %d, Flat = %d, Activation = %d' % (idx,hiddens,int(dim),int(flat),1-int(linear))	)
+        if self.disp_console and mode=="init_model": print('    Layer  %d : Type = Full, Hidden = %d, Input dimension = %d, Flat = %d, Activation = %d' % (idx,hiddens,int(dim),int(flat),1-int(linear))    )
         if linear : return tf.add(tf.matmul(inputs_processed,weight),biases,name=str(idx)+'_fc')
         ip = tf.add(tf.matmul(inputs_processed,weight),biases)
         return tf.maximum(self.alpha*ip,ip,name=str(idx)+'_fc')
@@ -264,33 +269,28 @@ class YOLO_TF:
         self.punishment:punishment,
         self.musk:inputs_musk,
         self.smoothness_punishment:smoothness_punishment}
+        
         # attack
         print("YOLO attack...")
         for i in range(steps):
             # fetch something in self(tf.Variable)
             net_output = self.sess.run([self.fc_19,self.attack,self.constrained,self.max_Cp,self.loss],feed_dict=in_dict)
             print("step:",i,"Confidence:",net_output[3],"Loss:",net_output[4])
-        #########
+
         #print(net_output[1],net_output[2],net_output[3])#,net_output[2],net_output[3],net_output[4]
         self.result = self.interpret_output(net_output[0][0])
+        
         ###
         # reconstruct image from perturbation
         ad_x=net_output[2]
         ad_x_01=(ad_x/2.0)+0.5
         #print(ad_x_01)
         ###
-        '''
-        fig = plt.figure()
-        bx = fig.add_subplot(111)
-        '''
+        
         # bx.imshow only take value between 0 and 1
         squeezed=np.squeeze(ad_x_01)
         #print(squeezed.max())
-        '''
-        print("Adversarial result:")
-        bx.imshow(squeezed)
-        plt.show()
-        '''
+
         ad_x_squeezed=np.squeeze(ad_x)
         reconstruct_img_resized_np=(ad_x_squeezed+1.0)/2.0*255.0
         print("min and max in img(numpy form):",reconstruct_img_resized_np.min(),reconstruct_img_resized_np.max())
@@ -301,14 +301,17 @@ class YOLO_TF:
 
         self.whole_pic_savedname=str(self.overall_pics)+".jpg" # time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
 
-        self.path = r"/home/baidu/Program/Jay/YOLO_attack-1/result/"
+        self.path = "./result/"
+        
         is_saved=cv2.imwrite(self.path+self.whole_pic_savedname,reconstruct_img_np_squeezed)
         if is_saved:
             print("Result saved under: ",self.path+self.whole_pic_savedname)
         else:
             print("Saving error!")
         
+        pdb.set_trace()
         print("Attack finished!")
+        
         # choose to generate invisible clothe
         user_input = "Yes"
         while user_input!="No" and self.Do_you_want_ad_sticker is True:
@@ -324,13 +327,15 @@ class YOLO_TF:
                 print("Wrong command!")
                 user_input = input("Do you want an invisible clothe? Yes/No:")
         
-        self.show_results(img ,self.result)
+        self.show_results(img, self.result)
+        
         strtime = str(time.time()-s)
         if self.disp_console : print('Elapsed time : ' + strtime + ' secs' + '\n')
     
     # generate_sticker saved under result folder
     def generate_sticker(self, pic_in_numpy_0_255):
         is_saved = None
+        
         self.sitcker_savedname = "sticker_"+self.whole_pic_savedname
         _object = self.musk_list[0]
         xmin = int(_object['bndbox']['xmin'])
@@ -338,6 +343,7 @@ class YOLO_TF:
         xmax = int(_object['bndbox']['xmax'])
         ymax = int(_object['bndbox']['ymax'])
         print(xmin,ymin,xmax,ymax)
+        
         # squeezed = np.squeeze(pic_in_numpy_0_255)
         sticker_in_numpy_0_255 = pic_in_numpy_0_255[ymin:ymax,xmin:xmax]
         # resized to US letter size
@@ -383,14 +389,7 @@ class YOLO_TF:
             ymax = int(_object['bndbox']['ymax'])
             print(xmin,ymin,xmax,ymax)
             musk = self.generate_Musk(musk,xmin,ymin,xmax,ymax)
-        '''
-        fig = plt.figure()
-        ax = fig.add_subplot(211)
-        ax.imshow(musk)
-        bx = fig.add_subplot(212)
-        bx.imshow(np.asarray(pic))
-        plt.show()  
-        '''
+
         self.detect_from_cvmat(img,musk)
 
     def detect_from_crop_sample(self):
@@ -477,24 +476,33 @@ class YOLO_TF:
             w = int(results[i][3])//2
             h = int(results[i][4])//2
             class_results_set.add(results[i][0])
-            if self.disp_console : print('    class : ' + results[i][0] + ' , [x,y,w,h]=[' + str(x) + ',' + str(y) + ',' + str(int(results[i][3])) + ',' + str(int(results[i][4]))+'], Confidence = ' + str(results[i][5]))
+            if self.disp_console : print('    class : ' + 
+                                         results[i][0] + ' , [x,y,w,h]=[' + 
+                                         str(x) + ',' + str(y) + ',' + 
+                                         str(int(results[i][3])) + ',' + 
+                                         str(int(results[i][4]))+'], Confidence = ' + 
+                                         str(results[i][5]))
+                
             if self.filewrite_img or self.imshow:
                 cv2.rectangle(img_cp,(x-w,y-h),(x+w,y+h),(0,255,0),2)
                 cv2.rectangle(img_cp,(x-w,y-h-20),(x+w,y-h),(125,125,125),-1)
                 cv2.putText(img_cp,results[i][0] + ' : %.2f' % results[i][5],(x-w+5,y-h-7),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,0),1)
-            if self.filewrite_txt :				
+            if self.filewrite_txt :                
                 ftxt.write(results[i][0] + ',' + str(x) + ',' + str(y) + ',' + str(w) + ',' + str(h)+',' + str(results[i][5]) + '\n')
         if "person" not in class_results_set:
             self.success+=1
             print("Attack succeeded!")
         else:
             print("Attack failed!")
+            
         if self.filewrite_img : 
             if self.disp_console : print('    image file writed : ' + self.tofile_img)
-            cv2.imwrite(self.tofile_img,img_cp)			
+            cv2.imwrite(self.tofile_img,img_cp)  
+            
         if self.imshow :
             cv2.imshow('YOLO_tiny detection',img_cp)
             cv2.waitKey(1)
+            
         if self.filewrite_txt : 
             if self.disp_console : print('    txt file writed : ' + self.tofile_txt)
             ftxt.close()
@@ -511,7 +519,7 @@ class YOLO_TF:
 
 def main(argvs):
     yolo = YOLO_TF(argvs)
-    #cv2.waitKey(5000)
+    # cv2.waitKey(5000)
 
-if __name__=='__main__':	
+if __name__=='__main__':    
     main(sys.argv)
