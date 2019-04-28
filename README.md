@@ -17,3 +17,15 @@ How to Use this code:
 4. When meeting the end condition, the program will save the adversary example will in ./result.
 
 5. See source code for more attack option.
+
+
+Copyright:
+
+According to the LICENSE file of the original code, Me and original author hold no liability for any 
+damages
+
+Do not use this on commercial!
+
+YOLO_tiny Reference from:
+	https://github.com/gliese581gg/YOLO_tensorflow
+
