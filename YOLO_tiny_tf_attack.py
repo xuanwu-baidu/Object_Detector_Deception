@@ -41,27 +41,8 @@ class YOLO_TF:
         self.overall_pics = 0
         self.argv_parser(argvs)
         self.build_YOLO_attack_graph()
-        self.training()
-        if self.fromfile is not None and self.frommuskfile is not None:
-            self.detect_from_file(self.fromfile, self.frommuskfile)
-            
-        if self.fromfolder is not None:
-            filename_list = os.listdir(self.fromfolder)
-            # take pics name out and construct xml filename to read from
-            for filename in filename_list:
-                pic_name = re.match(r'\d+.JPG', filename)
-                
-                if pic_name is not None:
-                    self.overall_pics+=1
-                    print("Pics number:",self.overall_pics,"The",pic_name[0], "!")
+        
 
-                    pic_musk_name = pic_name[0][:-3]+"xml"
-                    fromfile = self.fromfolder+"/"+pic_name[0]
-                    frommusk = self.fromfolder+"/"+pic_musk_name
-                    
-                    self.detect_from_file(fromfile, frommusk)
-                    
-            print("Attack success rate:", self.success/self.overall_pics)
 
     def argv_parser(self,argvs):
         for i in range(1,len(argvs),2):
@@ -90,73 +71,77 @@ class YOLO_TF:
 
     def build_YOLO_attack_graph(self):
         if self.disp_console : print("Building YOLO attack graph...")
-        
+
         if self.useEOT == True:
-            self.sample_matrixes = transformation.random_sample_33()
+            self.sample_matrixes = transformation.target_sample()
         else:
             pass
+
         # x is the image
         self.x = tf.placeholder('float32',[1,448,448,3])
         self.musk = tf.placeholder('float32',[1,448,448,3])
-        ####
+
         self.punishment = tf.placeholder('float32',[1])
         self.smoothness_punishment=tf.placeholder('float32',[1])
         init_inter = tf.constant_initializer(0.001*np.random.random([1,448,448,3]))
         self.inter = tf.get_variable(name='inter',shape=[1,448,448,3],dtype=tf.float32,initializer=init_inter)
+
         # box constraints ensure self.x within(0,1)
         self.w = tf.atanh(self.x)
+
         # add musk
         self.musked_inter = tf.multiply(self.musk,self.inter)
         self.shuru = tf.add(self.w,self.musked_inter)
         self.constrained = tf.tanh(self.shuru)
-        ####
         
         self.max_Cp = self.YOLO_model(self.constrained,mode="init_model")
         
         YOLO_variables = tf.contrib.framework.get_variables()[1:]
         # unused
         YOLO_variables_name = [variable.name for variable in YOLO_variables]
-        #################################################
+
         # build graph to compute the largest Cp among all pictures using the for loop
         # transform original picture over EOT
-        #####
         if self.useEOT == True:
             print("Building EOT YOLO graph!")
             for id, sample_matrix in enumerate(self.sample_matrixes):
                 self.another_constrained = tf.contrib.image.transform(self.constrained, sample_matrix)
+
                 with tf.variable_scope("") as scope:# .reuse_variables()
                     scope.reuse_variables()
                     self.another_Cp = self.YOLO_model(self.another_constrained,mode="reuse_model")
-                # self.max_Cp = tf.maximum(self.max_Cp,self.another_Cp)
                 self.max_Cp += self.another_Cp
+
         else:
             print("EOT mode disabled!")
             
-        #####
-        #################################################
         # computer graph for norm 2 distance
         # init an ad example
         self.perturbation = self.x-self.constrained
         self.distance_L2 = tf.norm(self.perturbation, ord=2)
         self.punishment = tf.placeholder('float32',[1])
+        
         # non-smoothness
         self.lala1 = self.musked_inter[0:-1,0:-1]
         self.lala2 = self.musked_inter[1:,1:]
         self.sub_lala1_2 = self.lala1-self.lala2
         self.non_smoothness = tf.norm(self.sub_lala1_2, ord=2)
+        
         # loss is maxpooled confidence + distance_L2 + print smoothness
         self.loss = self.max_Cp+self.punishment*self.distance_L2+self.smoothness_punishment*self.non_smoothness
+        
         # set optimizer
         self.optimizer = tf.train.AdamOptimizer(1e-2)#GradientDescentOptimizerAdamOptimizer
         self.attack = self.optimizer.minimize(self.loss,var_list=[self.inter])#,var_list=[self.adversary]
-        ####################
+        
+        # init and load weights by variables
         self.sess = tf.Session() # config=tf.ConfigProto(log_device_placement=True)
         self.sess.run(tf.global_variables_initializer())
         #print(tf.contrib.framework.get_variables())
         saver = tf.train.Saver(YOLO_variables)#[0:-1][1:-4]
         saver.restore(self.sess,self.weights_file)
-        ####################
-        
+
+
         if self.disp_console : print("Loading complete!" + '\n')
 
     def YOLO_model(self, image, mode="init_model"):
@@ -299,7 +284,7 @@ class YOLO_TF:
         reconstruct_img_np=cv2.resize(reconstruct_img_BGR,(self.w_img,self.h_img))#reconstruct_img_BGR
         reconstruct_img_np_squeezed=np.squeeze(reconstruct_img_np)
 
-        self.whole_pic_savedname=str(self.overall_pics)+".jpg" # time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
+        self.whole_pic_savedname=str(self.overall_pics)+".png" # time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
 
         self.path = "./result/"
         
@@ -309,7 +294,6 @@ class YOLO_TF:
         else:
             print("Saving error!")
         
-        pdb.set_trace()
         print("Attack finished!")
         
         # choose to generate invisible clothe
@@ -514,12 +498,31 @@ class YOLO_TF:
         else : intersection =  tb*lr
         return intersection / (box1[2]*box1[3] + box2[2]*box2[3] - intersection)
 
-    def training(self): #TODO add training function
-        return None
+    def attack(self):
+        if self.fromfile is not None and self.frommuskfile is not None:
+            self.detect_from_file(self.fromfile, self.frommuskfile)
+            
+        if self.fromfolder is not None:
+            filename_list = os.listdir(self.fromfolder)
+            # take pics name out and construct xml filename to read from
+            for filename in filename_list:
+                pic_name = re.match(r'\d+.JPG', filename)
+                
+                if pic_name is not None:
+                    self.overall_pics+=1
+                    print("Pics number:",self.overall_pics,"The",pic_name[0], "!")
+
+                    pic_musk_name = pic_name[0][:-3]+"xml"
+                    fromfile = self.fromfolder+"/"+pic_name[0]
+                    frommusk = self.fromfolder+"/"+pic_musk_name
+                    
+                    self.detect_from_file(fromfile, frommusk)
+                    
+            print("Attack success rate:", self.success/self.overall_pics)
 
 def main(argvs):
     yolo = YOLO_TF(argvs)
-    # cv2.waitKey(5000)
-
+    yolo.attack()
+    
 if __name__=='__main__':    
     main(sys.argv)
