@@ -3,6 +3,7 @@
 *.avi
 *.jpg
 *.png
+*.jpeg
 
 # python
 *.pyc
@@ -12,3 +13,6 @@
 
 # weights
 *.ckpt
+
+# mask file
+*.xml
