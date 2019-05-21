@@ -12,8 +12,10 @@ import transformation
 import os
 import re
 
-class YOLO_TF:
-    # init global variable in YOLO_TF instance
+from yolo_tiny_model import yolo_tiny_model
+
+class ObjectDetectorAttacker:
+    # init global variable
     fromfile = None
     fromfolder = None
     tofile_img = 'test/output.jpg'
@@ -40,10 +42,8 @@ class YOLO_TF:
         self.success = 0
         self.overall_pics = 0
         self.argv_parser(argvs)
-        self.build_YOLO_attack_graph()
+        self.build_model_attack_graph()
         
-
-
     def argv_parser(self,argvs):
         for i in range(1,len(argvs),2):
             # read picture file
@@ -69,7 +69,7 @@ class YOLO_TF:
                 if argvs[i+1] == '1' :self.disp_console = True
                 else : self.disp_console = False
 
-    def build_YOLO_attack_graph(self):
+    def build_model_attack_graph(self):
         if self.disp_console : print("Building YOLO attack graph...")
 
         if self.useEOT == True:
@@ -94,22 +94,43 @@ class YOLO_TF:
         self.shuru = tf.add(self.w,self.musked_inter)
         self.constrained = tf.tanh(self.shuru)
         
-        self.max_Cp = self.YOLO_model(self.constrained,mode="init_model")
+        # create session
+        self.sess = tf.Session() # config=tf.ConfigProto(log_device_placement=True)
         
-        YOLO_variables = tf.contrib.framework.get_variables()[1:]
+        # self.max_Cp = self.YOLO_model(self.constrained,mode="init_model")
+        init_dict = {'yolo_model_input': self.constrained,
+                     'yolo_mode': "init_model",
+                     'yolo_disp_console': self.disp_console,
+                     'session': self.sess}
+        
+        # create a yolo model
+        self.yolo_detector = yolo_tiny_model(init_dict)
+        self.max_Cp = self.yolo_detector.get_output_tensor()
+        
+        MODEL_variables = self.yolo_detector.get_yolo_variables()
+        # Alternatives:
+        # leave out tf.inter variable which is not part of yolo model
+        # MODEL_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)[1:]
+        # MODEL_variables = tf.contrib.framework.get_variables()[1:]
+
         # unused
-        YOLO_variables_name = [variable.name for variable in YOLO_variables]
+        MODEL_variables_name = [variable.name for variable in MODEL_variables]
 
         # build graph to compute the largest Cp among all pictures using the for loop
         # transform original picture over EOT
         if self.useEOT == True:
-            print("Building EOT YOLO graph!")
+            print("Building EOT Model graph!")
             for id, sample_matrix in enumerate(self.sample_matrixes):
                 self.another_constrained = tf.contrib.image.transform(self.constrained, sample_matrix)
+                init_dict = {'yolo_model_input': self.another_constrained,
+                             'yolo_mode': "reuse_model",
+                             'yolo_disp_console': self.disp_console,
+                             'session': self.sess}
 
                 with tf.variable_scope("") as scope:# .reuse_variables()
                     scope.reuse_variables()
-                    self.another_Cp = self.YOLO_model(self.another_constrained,mode="reuse_model")
+                    yolo_detector = yolo_tiny_model(init_dict)
+                    self.another_Cp = yolo_detector.get_output_tensor()
                 self.max_Cp += self.another_Cp
 
         else:
@@ -132,112 +153,51 @@ class YOLO_TF:
         
         # set optimizer
         self.optimizer = tf.train.AdamOptimizer(1e-2)#GradientDescentOptimizerAdamOptimizer
-        self.attack = self.optimizer.minimize(self.loss,var_list=[self.inter])#,var_list=[self.adversary]
+        self.attackoperator = self.optimizer.minimize(self.loss,var_list=[self.inter])#,var_list=[self.adversary]
         
         # init and load weights by variables
-        self.sess = tf.Session() # config=tf.ConfigProto(log_device_placement=True)
         self.sess.run(tf.global_variables_initializer())
-        #print(tf.contrib.framework.get_variables())
-        saver = tf.train.Saver(YOLO_variables)#[0:-1][1:-4]
+        
+        # restore model variable
+        saver = tf.train.Saver(MODEL_variables)
         saver.restore(self.sess,self.weights_file)
 
 
         if self.disp_console : print("Loading complete!" + '\n')
 
-    def YOLO_model(self, image, mode="init_model"):
-        assert mode=="init_model" or mode=="reuse_model"
-        self.conv_1 = self.conv_layer(1,image,16,3,1,'Variable:0', 'Variable_1:0',mode=mode)
-        self.pool_2 = self.pooling_layer(2,self.conv_1,2,2,mode=mode)
-        self.conv_3 = self.conv_layer(3,self.pool_2,32,3,1,'Variable_2:0', 'Variable_3:0',mode=mode)
-        self.pool_4 = self.pooling_layer(4,self.conv_3,2,2,mode=mode)
-        self.conv_5 = self.conv_layer(5,self.pool_4,64,3,1,'Variable_4:0', 'Variable_5:0',mode=mode)
-        self.pool_6 = self.pooling_layer(6,self.conv_5,2,2,mode=mode)
-        self.conv_7 = self.conv_layer(7,self.pool_6,128,3,1,'Variable_6:0', 'Variable_7:0',mode=mode)
-        self.pool_8 = self.pooling_layer(8,self.conv_7,2,2,mode=mode)
-        self.conv_9 = self.conv_layer(9,self.pool_8,256,3,1,'Variable_8:0', 'Variable_9:0',mode=mode)
-        self.pool_10 = self.pooling_layer(10,self.conv_9,2,2,mode=mode)
-        self.conv_11 = self.conv_layer(11,self.pool_10,512,3,1,'Variable_10:0', 'Variable_11:0',mode=mode)
-        self.pool_12 = self.pooling_layer(12,self.conv_11,2,2,mode=mode)
-        self.conv_13 = self.conv_layer(13,self.pool_12,1024,3,1,'Variable_12:0', 'Variable_13:0',mode=mode)
-        self.conv_14 = self.conv_layer(14,self.conv_13,1024,3,1,'Variable_14:0', 'Variable_15:0',mode=mode)
-        self.conv_15 = self.conv_layer(15,self.conv_14,1024,3,1,'Variable_16:0', 'Variable_17:0',mode=mode)
-        self.fc_16 = self.fc_layer(16,self.conv_15,256,'Variable_18:0', 'Variable_19:0',flat=True,linear=False,mode=mode)
-        self.fc_17 = self.fc_layer(17,self.fc_16,4096,'Variable_20:0', 'Variable_21:0',flat=False,linear=False,mode=mode)
-        #skip dropout_18
-        self.fc_19 = self.fc_layer(19,self.fc_17,1470,'Variable_22:0', 'Variable_23:0',flat=False,linear=True,mode=mode)
-        self.c = tf.reshape(tf.slice(self.fc_19,[0,0],[1,980]),(7,7,20))
-        self.s = tf.reshape(tf.slice(self.fc_19,[0,980],[1,98]),(7,7,2))
-        #self.probs = tf.Variable(tf.ones(shape=[]))
-        #self.probs = tf.placeholder('float32',[None,7,7,2])
-        #self.com=tf.constant(0.2*np.ones(98,dtype='float32'))
-        self.p1 = tf.multiply(self.c[:,:,14],self.s[:,:,0])
-        self.p2 = tf.multiply(self.c[:,:,14],self.s[:,:,1])
-        self.p = tf.stack([self.p1,self.p2],axis=0)
-        #for i in range(2):
-        #self.probs[:,:,i].assign(tf.multiply(self.c[:,:,14],self.s[:,:,i]))
-        #self.probs=tf.concat([self.p1,self.p2],0)
-        #self.yan=tf.reduce_sum(tf.maximum(self.probs,0.2))
-        #self.yan=tf.reduce_sum(self.probs)
-        Cp = tf.reduce_max(self.p) # confidence for people
+    def attack_from_file(self, filename, muskfilename):#,muskfilename
+        if self.disp_console : print('Detect from ' + filename)
+
+        f = open(muskfilename)
+        dic = xmltodict.parse(f.read())
+        #str = json.dumps(dic)
+
+        print("Input picture size:",dic['annotation']['size'])
         
-        return Cp
+        img = cv2.imread(filename)
+        print(type(img),img.shape)
+        musk = 0.000001*np.ones(shape=img.shape)
+
+        print("Generating Musk...")
+        self.musk_list = dic['annotation']['object']
+        for _object in self.musk_list:
+            xmin = int(_object['bndbox']['xmin'])
+            ymin = int(_object['bndbox']['ymin'])
+            xmax = int(_object['bndbox']['xmax'])
+            ymax = int(_object['bndbox']['ymax'])
+            print(xmin,ymin,xmax,ymax)
+            musk = self.generate_Musk(musk,xmin,ymin,xmax,ymax)
+
+        self.detect_from_cvmat(img, musk)
     
-    def conv_layer(self,idx,inputs,filters,size,stride,weight_name,biases_name,mode="init_model"):
-        channels = inputs.get_shape()[3]
-        if mode=="init_model":
-            # weight = tf.Variable(tf.truncated_normal([size,size,int(channels),filters], stddev=0.1))
-            weight = tf.get_variable(name=weight_name[:-2],shape=[size,size,int(channels),filters],dtype=tf.float32)
-            # biases = tf.Variable(tf.constant(0.1, shape=[filters]))
-            biases = tf.get_variable(name=biases_name[:-2],shape=[filters],dtype=tf.float32)
-        if mode=="reuse_model":
-            weight = tf.get_variable(name=weight_name[:-2])
-            biases = tf.get_variable(name=biases_name[:-2])
-            
-        pad_size = size//2
-        pad_mat = np.array([[0,0],[pad_size,pad_size],[pad_size,pad_size],[0,0]])
-        inputs_pad = tf.pad(inputs,pad_mat)
-
-        conv = tf.nn.conv2d(inputs_pad, weight, strides=[1, stride, stride, 1], padding='VALID',name=str(idx)+'_conv')    
-        conv_biased = tf.add(conv,biases,name=str(idx)+'_conv_biased')    
-        if self.disp_console and mode=="init_model": print('    Layer  %d : Type = Conv, Size = %d * %d, Stride = %d, Filters = %d, Input channels = %d' % (idx,size,size,stride,filters,int(channels)))
-        return tf.maximum(self.alpha*conv_biased,conv_biased,name=str(idx)+'_leaky_relu')
-
-    def pooling_layer(self,idx,inputs,size,stride,mode="init_model"):
-        if self.disp_console and mode=="init_model": print('    Layer  %d : Type = Pool, Size = %d * %d, Stride = %d' % (idx,size,size,stride))
-        return tf.nn.max_pool(inputs, ksize=[1, size, size, 1],strides=[1, stride, stride, 1], padding='SAME',name=str(idx)+'_pool')
-
-    def fc_layer(self,idx,inputs,hiddens,weight_name,biases_name,flat = False,linear = False,mode="init_model"):
-        input_shape = inputs.get_shape().as_list()        
-        if flat:
-            dim = input_shape[1]*input_shape[2]*input_shape[3]
-            inputs_transposed = tf.transpose(inputs,(0,3,1,2))
-            inputs_processed = tf.reshape(inputs_transposed, [-1,dim])
-        else:
-            dim = input_shape[1]
-            inputs_processed = inputs
-        
-        if mode=="init_model":
-            # weight = tf.Variable(tf.truncated_normal([dim,hiddens], stddev=0.1))
-            weight = tf.get_variable(name=weight_name[:-2],shape=[dim,hiddens],dtype=tf.float32)
-            # biases = tf.Variable(tf.constant(0.1, shape=[hiddens]))
-            biases = tf.get_variable(name=biases_name[:-2],shape=[hiddens],dtype=tf.float32)
-        if mode=="reuse_model":
-            weight = tf.get_variable(name=weight_name[:-2])
-            biases = tf.get_variable(name=biases_name[:-2])
-        
-        if self.disp_console and mode=="init_model": print('    Layer  %d : Type = Full, Hidden = %d, Input dimension = %d, Flat = %d, Activation = %d' % (idx,hiddens,int(dim),int(flat),1-int(linear))    )
-        if linear : return tf.add(tf.matmul(inputs_processed,weight),biases,name=str(idx)+'_fc')
-        ip = tf.add(tf.matmul(inputs_processed,weight),biases)
-        return tf.maximum(self.alpha*ip,ip,name=str(idx)+'_fc')
-
-    def detect_from_cvmat(self,img,musk):
+    def detect_from_cvmat(self, img, musk):
         s = time.time()
         self.h_img,self.w_img,_ = img.shape
         img_resized = cv2.resize(img, (448, 448))
         musk_resized = cv2.resize(musk,(448,448))
         img_RGB = cv2.cvtColor(img_resized,cv2.COLOR_BGR2RGB)
         img_resized_np = np.asarray( img_RGB )
-        inputs = np.zeros((1,448,448,3),dtype='float32')
+        inputs = np.zeros((1,448,448,3),dtype='float32')   # ni ye ke yi yong np.newaxis
         inputs_musk = np.zeros((1,448,448,3),dtype='float32')
         inputs[0] = (img_resized_np/255.0)*2.0-1.0
         inputs_musk[0] = musk_resized
@@ -251,30 +211,32 @@ class YOLO_TF:
 
         # set original image and punishment
         in_dict = {self.x: inputs,
-        self.punishment:punishment,
-        self.musk:inputs_musk,
-        self.smoothness_punishment:smoothness_punishment}
+                   self.punishment: punishment,
+                   self.musk: inputs_musk,
+                   self.smoothness_punishment: smoothness_punishment}
+        
+        # set fetch list
+        fetch_list = [self.yolo_detector.fc_19,
+                      self.attackoperator,
+                      self.constrained,
+                      self.max_Cp,
+                      self.loss]
         
         # attack
         print("YOLO attack...")
         for i in range(steps):
             # fetch something in self(tf.Variable)
-            net_output = self.sess.run([self.fc_19,self.attack,self.constrained,self.max_Cp,self.loss],feed_dict=in_dict)
+            net_output = self.sess.run(fetch_list, feed_dict=in_dict)
             print("step:",i,"Confidence:",net_output[3],"Loss:",net_output[4])
 
-        #print(net_output[1],net_output[2],net_output[3])#,net_output[2],net_output[3],net_output[4]
         self.result = self.interpret_output(net_output[0][0])
         
-        ###
         # reconstruct image from perturbation
         ad_x=net_output[2]
         ad_x_01=(ad_x/2.0)+0.5
-        #print(ad_x_01)
-        ###
         
         # bx.imshow only take value between 0 and 1
         squeezed=np.squeeze(ad_x_01)
-        #print(squeezed.max())
 
         ad_x_squeezed=np.squeeze(ad_x)
         reconstruct_img_resized_np=(ad_x_squeezed+1.0)/2.0*255.0
@@ -284,7 +246,8 @@ class YOLO_TF:
         reconstruct_img_np=cv2.resize(reconstruct_img_BGR,(self.w_img,self.h_img))#reconstruct_img_BGR
         reconstruct_img_np_squeezed=np.squeeze(reconstruct_img_np)
 
-        self.whole_pic_savedname=str(self.overall_pics)+".png" # time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
+        # write in sticker as jpg, idk how to write it in png. Help me!
+        self.whole_pic_savedname=str(self.overall_pics)+".jpg" # time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())+".jpg"
 
         self.path = "./result/"
         
@@ -328,11 +291,9 @@ class YOLO_TF:
         ymax = int(_object['bndbox']['ymax'])
         print(xmin,ymin,xmax,ymax)
         
-        # squeezed = np.squeeze(pic_in_numpy_0_255)
-        sticker_in_numpy_0_255 = pic_in_numpy_0_255[ymin:ymax,xmin:xmax]
+        sticker_in_numpy_0_255 = pic_in_numpy_0_255[ymin:ymax, xmin:xmax]
         # resized to US letter size
         assert sticker_in_numpy_0_255 is not None
-        # sticker_in_numpy_0_255 = cv2.resize(sticker_in_numpy_0_255,(612,792))
 
         is_saved=cv2.imwrite(self.path+self.sitcker_savedname,sticker_in_numpy_0_255)
         if is_saved:
@@ -348,33 +309,8 @@ class YOLO_TF:
             for j in range(ymin,ymax):
                 for channel in range(3):
                     musk[j][i][channel] = 1
+
         return musk
-
-    def detect_from_file(self,filename,muskfilename):#,muskfilename
-        if self.disp_console : print('Detect from ' + filename)
-        img = cv2.imread(filename)
-        #img = misc.imread(filename)
-        f = open(muskfilename)
-        pic = plt.imread(filename)
-        dic = xmltodict.parse(f.read())
-        #str = json.dumps(dic)
-
-        print("Input picture size:",dic['annotation']['size'])
-        #shape = [int(dic['annotation']['size']['height']),int(dic['annotation']['size']['width'])]
-        print(type(img),img.shape)
-        musk = 0.000001*np.ones(shape=img.shape)
-        #print(pic)
-        print("Generating Musk...")
-        self.musk_list = dic['annotation']['object']
-        for _object in self.musk_list:
-            xmin = int(_object['bndbox']['xmin'])
-            ymin = int(_object['bndbox']['ymin'])
-            xmax = int(_object['bndbox']['xmax'])
-            ymax = int(_object['bndbox']['ymax'])
-            print(xmin,ymin,xmax,ymax)
-            musk = self.generate_Musk(musk,xmin,ymin,xmax,ymax)
-
-        self.detect_from_cvmat(img,musk)
 
     def detect_from_crop_sample(self):
         self.w_img = 640
@@ -500,7 +436,7 @@ class YOLO_TF:
 
     def attack(self):
         if self.fromfile is not None and self.frommuskfile is not None:
-            self.detect_from_file(self.fromfile, self.frommuskfile)
+            self.attack_from_file(self.fromfile, self.frommuskfile)
             
         if self.fromfolder is not None:
             filename_list = os.listdir(self.fromfolder)
@@ -516,13 +452,13 @@ class YOLO_TF:
                     fromfile = self.fromfolder+"/"+pic_name[0]
                     frommusk = self.fromfolder+"/"+pic_musk_name
                     
-                    self.detect_from_file(fromfile, frommusk)
+                    self.attack_from_file(fromfile, frommusk)
                     
             print("Attack success rate:", self.success/self.overall_pics)
 
 def main(argvs):
-    yolo = YOLO_TF(argvs)
-    yolo.attack()
+    attacker = ObjectDetectorAttacker(argvs)
+    attacker.attack()
     
 if __name__=='__main__':    
     main(sys.argv)

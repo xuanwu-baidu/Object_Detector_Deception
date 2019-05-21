@@ -1,0 +1,11 @@
+Purpose:
+
+To raise people's awareness of techniques that can deceive deep learning models, we designed this "Stealth T-shirt" with the adversarial pattern on the chest to fool an object detector. The T-shirt is capable of hiding a person who wears it from an open-source object detector.
+
+What is this？
+
+This a T-shirt with adversarial pattern printed on the chest capable of fooling an object detector. The adversarial pattern is generated via known gradients of the model.
+
+How does it work?
+
+By wearing it and showing the adversarial pattern in front of a camera and its object detector, the person who wears it will disappear. Whereas the person who doesn't wear the T-shirt is still under object detector detection.
